@@ -29,7 +29,7 @@
   "components": [
     { "id": "web", "type": "frontend", "label": "Interfaz web", "sublabel": "React + Vite", "pos": [30, 180], "size": [120, 68] },
     { "id": "gateway", "type": "security", "label": "API Gateway", "sublabel": "Traefik · :8210", "pos": [210, 178], "size": [125, 72] },
-    { "id": "mock_auth", "type": "backend", "label": "mock-auth", "sublabel": "consumidor EP-Platform", "pos": [400, 170], "size": [150, 90] },
+    { "id": "mock_auth", "type": "backend", "label": "mock-auth", "sublabel": "consumidor de autenticación", "pos": [400, 170], "size": [150, 90] },
     { "id": "risk_api", "type": "backend", "label": "access-risk-api", "sublabel": "reglas · fallback · métricas", "pos": [610, 170], "size": [160, 90] },
     { "id": "model", "type": "backend", "label": "access-risk-model", "sublabel": "inferencia · IA (Python)", "pos": [830, 170], "size": [160, 90] },
     { "id": "fallback", "type": "security", "label": "Fallback", "sublabel": "exigir 2FA", "pos": [400, 400], "size": [145, 66] },

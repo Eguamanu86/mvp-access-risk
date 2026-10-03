@@ -1,6 +1,6 @@
 # Guion — Presentación magistral: de un modelo de IA a un sistema MLOps
 
-**Proyecto:** MVP — Servicio Inteligente de Riesgo de Acceso (`mg-cr-access-risk-api` + `alp-cr-access-risk-model`)
+**Proyecto:** MVP — Servicio Inteligente de Riesgo de Acceso (`access-risk-api` + `access-risk-model`)
 **Módulo:** MIS-312 · Ingeniería de Software para Sistemas Inteligentes
 **Audiencia:** estudiantes de maestría (perfil técnico; no se asume experiencia previa en MLOps)
 **Duración objetivo:** 60 min (núcleo) — recortable a 45 y ampliable a 75 (ver sección 12)
@@ -23,7 +23,7 @@
 > **El backend orquesta, la IA opina y el backend decide.**
 > Un modelo de IA no es un sistema inteligente completo.
 
-**Arco narrativo:** partimos de un caso real (autenticación de Enviame) → mostramos por qué "tener un modelo" no basta → construimos el sistema completo delante de ellos → cerramos con el ciclo MLOps y las lecciones.
+**Arco narrativo:** partimos de un caso real (autenticación con 2FA) → mostramos por qué "tener un modelo" no basta → construimos el sistema completo delante de ellos → cerramos con el ciclo MLOps y las lecciones.
 
 ---
 
@@ -51,10 +51,10 @@
 
 **Diapositiva 1 — Portada**
 - Título: *De un modelo de IA a un sistema MLOps: el caso del riesgo de acceso.*
-- Subtítulo: MIS-312 · `mg-cr-access-risk-api`.
+- Subtítulo: MIS-312 · `access-risk-api`.
 
 **Guion hablado:**
-> "Hoy no vamos a hablar de entrenar un modelo. Vamos a hablar de todo lo que hace falta alrededor de un modelo para que sirva de verdad en producción. Vamos a hacerlo con un caso real de Enviame: decidir si un intento de acceso es riesgoso. Y lo van a ver funcionando, no en diapositivas."
+> "Hoy no vamos a hablar de entrenar un modelo. Vamos a hablar de todo lo que hace falta alrededor de un modelo para que sirva de verdad en producción. Vamos a hacerlo con un caso real: decidir si un intento de acceso es riesgoso. Y lo van a ver funcionando, no en diapositivas."
 
 **Diapositiva 2 — Agenda**
 > "Tres ideas: (1) por qué un modelo no es un sistema; (2) qué es MLOps y cuál es su ciclo de vida; (3) cómo se ve todo eso en un MVP que corre de punta a punta."
@@ -66,8 +66,8 @@
 
 ## 3. Bloque 2 — El problema: la decisión binaria del login (5 min)
 
-**Diapositiva 3 — Cómo autentica Enviame hoy**
-- EP-Platform actúa como *Backend Auth Proxy*: valida credenciales/Firebase y responde con un token de sesión.
+**Diapositiva 3 — Cómo se autentica hoy**
+- El *Backend Auth Proxy* valida credenciales/Firebase y responde con un token de sesión.
 - Ya soporta: password, SSO/OIDC, MFA/2FA, dispositivos de confianza, bloqueo por intentos.
 - **Limitación clave:** la decisión de exigir 2FA es **binaria y por reglas**: si el dispositivo es de confianza se omite; si no, se exige.
 
@@ -154,7 +154,7 @@ feedback (etiquetas) ◄── monitoreo (drift + performance) ◄── desplie
 **Diapositiva 11 — Los 4 servicios + infraestructura**
 - `web` (React/Vite) — interfaz de demo.
 - `gateway` (Traefik) — punto de entrada único, ruteo y rate limiting.
-- `mock-auth` (Node) — simula el `AuthController` de EP-Platform: **orquesta y decide**.
+- `mock-auth` (Node) — simula el `AuthController` de autenticación: **orquesta y decide**.
 - `access-risk-api` (Node hexagonal) — reglas, fallback, métricas, persistencia.
 - `access-risk-model` (Python/Flask) — inferencia: **el modelo opina**.
 - Infra: PostgreSQL (auditoría + feedback), MinIO (artefactos), MLflow (tracking/registro).
@@ -306,7 +306,7 @@ curl -s http://localhost:8210/v1/access-risk/metrics
 | Puerta de calidad | Sí | `retrain.py`: promueve solo si mejora |
 | Registro de modelos | Sí | `models/registry.json` + MLflow |
 | CI/CD | Sí | `bitbucket-pipelines.yml` + `cloudbuild.yaml` |
-| Despliegue | Sí | Docker + Cloud Run + `env.test/stage/prod.yaml` |
+| Despliegue | Sí | Docker + Cloud Run + `env.example.yaml` |
 | Monitoreo | Sí | `/metrics` (latencia, conteos, fallback, circuit) |
 | Persistencia / auditoría | Sí | PostgreSQL `access_risk_decisions` |
 | Feedback loop (etiquetas) | Sí | `POST /v1/access-risk/feedback` (`fraud`/`legit`) |
@@ -371,12 +371,12 @@ python retrain.py --concept-drift
 **Guion hablado:**
 > "Esto es la respuesta a '¿y si mañana quieren pasar esto a otra nube?'. La portabilidad no viene de elegir bien la nube; viene de depender de **interfaces y protocolos estándar** (S3, SQL, OTLP), no de SDKs propietarios. La arquitectura hexagonal es exactamente eso."
 
-**Diapositiva 23 — Estándar de ingeniería Enviame**
+**Diapositiva 23 — Estándar de ingeniería**
 - Node `^24`, Express 5, hexagonal (4 capas), errores tipados, Winston (sin `console.*`).
 - Calidad: Jest + Supertest; pipeline lint → tests → cobertura → SonarQube.
 - Despliegue: Cloud Run, Secret Manager, contenedor no root, servicio no público.
 
-**Evidencia de pruebas (verificada):** inferencia `16 passed`; servicio de riesgo `11` unit + `5` integración; lint sin errores.
+**Evidencia de pruebas (verificada):** inferencia `21 passed`; servicio de riesgo `27` unit + `11` integración; lint sin errores.
 
 ---
 

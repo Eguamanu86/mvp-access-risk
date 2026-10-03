@@ -1,5 +1,5 @@
 {
-  "name": "mg-cr-access-risk-api",
+  "name": "access-risk-api",
   "version": "1.0.0",
   "description": "Servicio inteligente de riesgo de acceso (MVP)",
   "type": "commonjs",

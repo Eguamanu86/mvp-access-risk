@@ -10,9 +10,9 @@
   "components": [
     { "id": "web", "type": "frontend", "label": "Interfaz web", "sublabel": "React + Vite", "pos": [30, 180], "size": [120, 68] },
     { "id": "gateway", "type": "security", "label": "API Gateway", "sublabel": "Traefik", "pos": [210, 178], "size": [125, 72] },
-    { "id": "mock_auth", "type": "backend", "label": "mock-auth", "sublabel": "EP-Platform simulado", "pos": [400, 170], "size": [145, 90] },
-    { "id": "risk_api", "type": "backend", "label": "mg-cr-access-risk-api", "sublabel": "reglas + fallback", "pos": [610, 170], "size": [160, 90] },
-    { "id": "model", "type": "backend", "label": "alp-cr-access-risk-model", "sublabel": "inferencia (Python)", "pos": [830, 170], "size": [160, 90] },
+    { "id": "mock_auth", "type": "backend", "label": "mock-auth", "sublabel": "auth simulado", "pos": [400, 170], "size": [145, 90] },
+    { "id": "risk_api", "type": "backend", "label": "access-risk-api", "sublabel": "reglas + fallback", "pos": [610, 170], "size": [160, 90] },
+    { "id": "model", "type": "backend", "label": "access-risk-model", "sublabel": "inferencia (Python)", "pos": [830, 170], "size": [160, 90] },
     { "id": "fallback", "type": "security", "label": "Fallback", "sublabel": "exigir 2FA", "pos": [400, 400], "size": [145, 66] },
     { "id": "postgres", "type": "database", "label": "PostgreSQL", "sublabel": "auditoría + muestras", "pos": [610, 400], "size": [160, 70] },
     { "id": "mlflow", "type": "external", "label": "MLflow", "sublabel": "tracking + registro", "pos": [830, 400], "size": [160, 70] },

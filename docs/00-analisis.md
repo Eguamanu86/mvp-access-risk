@@ -1,8 +1,8 @@
 # Fase 1 — Análisis
 
-**Proyecto:** MVP — `mg-cr-access-risk-api` (servicio inteligente de riesgo de acceso)
+**Proyecto:** MVP — `access-risk-api` (servicio inteligente de riesgo de acceso)
 **Módulo:** MIS-312 · Ingeniería de Software para Sistemas Inteligentes
-**Referencias reales:** flujo de autenticación de Enviame (`ep-platform`), microservicio hexagonal `mg-cr-users-api`, arquitectura GCP (Cloud Run, Secret Manager, Bitbucket Pipelines, SonarQube)
+**Referencias:** flujo de autenticación con *Backend Auth Proxy*; arquitectura GCP (Cloud Run, Secret Manager, Bitbucket Pipelines, SonarQube)
 **Estado:** Análisis (a validar antes de Planificación)
 
 ---
@@ -11,21 +11,20 @@
 
 | Campo | Valor |
 |---|---|
-| Nombre propuesto | `mg-cr-access-risk-api` |
-| Convención de nombre | `<codename>-<infra>-<descripcion>-api` → `mg` (Madagascar/auth) · `cr` (Cloud Run) · `access-risk` |
+| Nombre propuesto | `access-risk-api` |
 | Tipo | Microservicio REST |
-| Stack | Node.js `^24`, CommonJS, Express 5, Sequelize 6 / Firestore, Winston, Jest 29 + Supertest |
-| Arquitectura | 4 capas (adapters / usecases / frameworks / utils) — estándar Enviame |
+| Stack | Node.js `^24`, CommonJS, Express 5, Sequelize 6 / PostgreSQL, Winston, Jest 29 + Supertest |
+| Arquitectura | 4 capas (adapters / usecases / frameworks / utils) — hexagonal |
 | Infraestructura | Google Cloud Run, Secret Manager, Cloud Logging, Cloud Build, Bitbucket Pipelines, SonarQube |
-| Consumidor principal | Flujo de autenticación de Enviame (`ep-platform` / Backend Auth Proxy) |
-| Servicio de inferencia | `alp-cr-access-risk-model` (Python, Cloud Run) |
+| Consumidor principal | Flujo de autenticación (Backend Auth Proxy) |
+| Servicio de inferencia | `access-risk-model` (Python, Cloud Run) |
 | Interfaz de demostración | Aplicación web completa (React + Vite + TypeScript), con estándares de UX y usabilidad |
 
 > El nombre y el ticket son propuestas; se confirman en la validación del análisis.
 
 ## 2. Contexto de negocio (caso real)
 
-Enviame autentica a sus usuarios a través de **EP-Platform, que actúa como Backend Auth Proxy**: recibe credenciales o tokens de Firebase, valida contra el dominio interno y responde con tokens de sesión. Ese flujo ya soporta login por password, SSO/OIDC, MFA/2FA, dispositivos de confianza, bloqueo por intentos y trazabilidad de intentos de login.
+La plataforma autentica a sus usuarios a través de un **Backend Auth Proxy**: recibe credenciales o tokens de Firebase, valida contra el dominio interno y responde con tokens de sesión. Ese flujo ya soporta login por password, SSO/OIDC, MFA/2FA, dispositivos de confianza, bloqueo por intentos y trazabilidad de intentos de login.
 
 Hoy, **la decisión de exigir 2FA es esencialmente binaria y basada en reglas**: si el dispositivo es de confianza (cookie `device_trust`) se omite el 2FA; si no, se exige. No existe una evaluación **graduada** del riesgo del intento de acceso.
 
@@ -43,7 +42,7 @@ Hoy, **la decisión de exigir 2FA es esencialmente binaria y basada en reglas**:
 
 ## 4. Objetivo
 
-Construir un microservicio que **evalúe el riesgo de un intento de acceso** y lo exponga por API al flujo de autenticación, siguiendo el estándar de ingeniería de Enviame (arquitectura hexagonal, GCP Cloud Run, CI/CD en Bitbucket, observabilidad con Winston), de modo que el backend pueda decidir de forma graduada y degradar de forma segura.
+Construir un microservicio que **evalúe el riesgo de un intento de acceso** y lo exponga por API al flujo de autenticación, con arquitectura hexagonal, GCP Cloud Run, CI/CD en Bitbucket y observabilidad con Winston, de modo que el backend pueda decidir de forma graduada y degradar de forma segura.
 
 ## 5. Alcance
 
@@ -57,7 +56,7 @@ Construir un microservicio que **evalúe el riesgo de un intento de acceso** y l
 - Un **arnés de demostración** (interfaz mínima) para mostrar el comportamiento en clase.
 
 **No incluye**
-- Modificar el flujo real de `ep-platform` (se documenta el punto de integración y se simula en el arnés).
+- Modificar un flujo de autenticación real (se documenta el punto de integración y se simula en el arnés).
 - SSO/OIDC, reCAPTCHA ni recuperación de contraseña (ya existen; no se tocan).
 - Entrenamiento de modelos complejos (redes neuronales, LLM).
 - Alta disponibilidad multi-región o datos de producción reales.
@@ -101,20 +100,20 @@ Construir un microservicio que **evalúe el riesgo de un intento de acceso** y l
 | RNF-09 | Reproducibilidad | Modelo determinista (semilla fija) y versionado |
 | RNF-10 | Privacidad | Solo señales derivadas del intento; sin datos personales identificables |
 
-## 9. Encaje en la arquitectura Enviame
+## 9. Encaje en la arquitectura
 
 ```text
-┌────────────────────┐  HTTP (timeout 250 ms)  ┌──────────────────────────┐   HTTP   ┌─────────────────────────────┐
-│  EP-Platform       │ ──────────────────────► │  mg-cr-access-risk-api   │ ───────► │  alp-cr-access-risk-model   │
-│  Backend Auth      │                         │  (Cloud Run · Node)      │          │  (Cloud Run · Python)       │
-│  Proxy             │ ◄────────────────────── │  reglas + fallback       │ ◄─────── │  inferencia del modelo      │
-│  (orquesta/decide) │   score + nivel + dec.  │  métricas + drift        │  score   │  determinista y versionado  │
-└────────────────────┘                         └──────────────────────────┘          └─────────────────────────────┘
+┌────────────────────┐  HTTP (timeout 250 ms)  ┌──────────────────────┐   HTTP   ┌─────────────────────────┐
+│  Backend Auth      │ ──────────────────────► │  access-risk-api     │ ───────► │  access-risk-model      │
+│  Proxy             │                         │  (Cloud Run · Node)  │          │  (Cloud Run · Python)   │
+│  (orquesta/decide) │ ◄────────────────────── │  reglas + fallback   │ ◄─────── │  inferencia del modelo  │
+│                    │   score + nivel + dec.  │  métricas + drift    │  score   │  determinista/versionado│
+└────────────────────┘                         └──────────────────────┘          └─────────────────────────┘
         │  fallback: exigir 2FA
         ▼
    MFA / sesión
 
-   Interfaz web (UX/usabilidad) ──► EP-Platform simulado ──► mg-cr-access-risk-api ──► alp-cr-access-risk-model
+   Interfaz web (UX/usabilidad) ──► Auth simulado ──► access-risk-api ──► access-risk-model
 ```
 
 - El servicio de riesgo se despliega en **Cloud Run** (contenedor `node:24-alpine`, usuario no root).
@@ -127,8 +126,8 @@ Construir un microservicio que **evalúe el riesgo de un intento de acceso** y l
 
 | Decisión | Opción recomendada | Por qué | Alternativas |
 |---|---|---|---|
-| Dónde vive el modelo | **Servicio de inferencia Python separado** (`alp-cr-access-risk-model`) | Desacopla el ciclo de vida del modelo; el equipo de IA itera sin tocar el servicio de riesgo | Modelo dentro del microservicio Node (más simple, menos desacoplado) |
-| Lenguaje | **Node.js** para el servicio de riesgo; **Python** para la inferencia | Consistencia con `mg-cr-users-api` y con los servicios de IA de Enviame | Todo en un solo lenguaje |
+| Dónde vive el modelo | **Servicio de inferencia Python separado** (`access-risk-model`) | Desacopla el ciclo de vida del modelo; el equipo de IA itera sin tocar el servicio de riesgo | Modelo dentro del microservicio Node (más simple, menos desacoplado) |
+| Lenguaje | **Node.js** para el servicio de riesgo; **Python** para la inferencia | Consistencia con el ecosistema de servicios y de IA existente | Todo en un solo lenguaje |
 | Comunicación | **Síncrona con timeout + fallback** | El login necesita decisión inmediata | Asíncrona (inviable para el login) |
 | Persistencia | **Sin base de datos para el MVP** (métricas en memoria) | Simplicidad; el registro de auditoría ya existe en el flujo de auth | Firestore/MySQL para histórico |
 | Detección de drift | **PSI simple** sobre una ventana de entradas | Estándar y suficiente para el MVP | Pruebas estadísticas complejas |
@@ -165,9 +164,9 @@ Construir un microservicio que **evalúe el riesgo de un intento de acceso** y l
 
 | Punto | Decisión |
 |---|---|
-| Nombre y ticket | `mg-cr-access-risk-api` · ticket `MVP-AR-001` (confirmados) |
-| Dónde vive el modelo | **Servicio de inferencia Python separado** (`alp-cr-access-risk-model`) |
+| Nombre y ticket | `access-risk-api` · ticket `MVP-AR-001` |
+| Dónde vive el modelo | **Servicio de inferencia Python separado** (`access-risk-model`) |
 | Interfaz de demostración | **Aplicación web completa**, con estándares de UX y usabilidad |
-| Consumidor | **Se simula** el flujo de EP-Platform dentro del MVP para probar de punta a punta |
+| Consumidor | **Se simula** el flujo de autenticación dentro del MVP para probar de punta a punta |
 
 Con estas decisiones, el análisis queda **cerrado y validado**. Se procede a la Fase 2 — Planificación.

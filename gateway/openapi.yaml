@@ -15,7 +15,7 @@ consumes:
 paths:
   /demo/login:
     post:
-      summary: Simula un intento de login (consumidor EP-Platform)
+      summary: Simula un intento de login (consumidor de autenticación)
       operationId: demoLogin
       x-google-backend:
         address: https://demo-mock-auth-<hash>-uc.a.run.app
@@ -38,7 +38,7 @@ paths:
       summary: Evalúa el riesgo de un intento de acceso
       operationId: evaluateRisk
       x-google-backend:
-        address: https://mg-cr-access-risk-api-<hash>-uc.a.run.app
+        address: https://access-risk-api-<hash>-uc.a.run.app
         path_translation: APPEND_PATH_TO_ADDRESS
       responses:
         "200":
@@ -48,7 +48,7 @@ paths:
       summary: Métricas del servicio de riesgo
       operationId: riskMetrics
       x-google-backend:
-        address: https://mg-cr-access-risk-api-<hash>-uc.a.run.app
+        address: https://access-risk-api-<hash>-uc.a.run.app
         path_translation: APPEND_PATH_TO_ADDRESS
       responses:
         "200":
@@ -59,7 +59,7 @@ paths:
       summary: Información del modelo activo (requiere sesión)
       operationId: modelInfo
       x-google-backend:
-        address: https://mg-cr-access-risk-api-<hash>-uc.a.run.app
+        address: https://access-risk-api-<hash>-uc.a.run.app
         path_translation: APPEND_PATH_TO_ADDRESS
       responses:
         "200":
@@ -69,7 +69,7 @@ paths:
       summary: Registro de versiones del modelo (requiere sesión)
       operationId: modelVersions
       x-google-backend:
-        address: https://mg-cr-access-risk-api-<hash>-uc.a.run.app
+        address: https://access-risk-api-<hash>-uc.a.run.app
         path_translation: APPEND_PATH_TO_ADDRESS
       responses:
         "200":
@@ -79,7 +79,7 @@ paths:
       summary: Estado del pipeline de reentrenamiento (requiere sesión)
       operationId: modelPipeline
       x-google-backend:
-        address: https://mg-cr-access-risk-api-<hash>-uc.a.run.app
+        address: https://access-risk-api-<hash>-uc.a.run.app
         path_translation: APPEND_PATH_TO_ADDRESS
       responses:
         "200":
@@ -89,7 +89,7 @@ paths:
       summary: Promueve una versión del modelo (solo administrador)
       operationId: modelPromote
       x-google-backend:
-        address: https://mg-cr-access-risk-api-<hash>-uc.a.run.app
+        address: https://access-risk-api-<hash>-uc.a.run.app
         path_translation: APPEND_PATH_TO_ADDRESS
       responses:
         "200":
@@ -99,7 +99,7 @@ paths:
       summary: Revierte a la versión anterior (solo administrador)
       operationId: modelRollback
       x-google-backend:
-        address: https://mg-cr-access-risk-api-<hash>-uc.a.run.app
+        address: https://access-risk-api-<hash>-uc.a.run.app
         path_translation: APPEND_PATH_TO_ADDRESS
       responses:
         "200":
@@ -109,7 +109,7 @@ paths:
       summary: Dispara el reentrenamiento del modelo (solo administrador)
       operationId: modelRetrain
       x-google-backend:
-        address: https://mg-cr-access-risk-api-<hash>-uc.a.run.app
+        address: https://access-risk-api-<hash>-uc.a.run.app
         path_translation: APPEND_PATH_TO_ADDRESS
       responses:
         "200":

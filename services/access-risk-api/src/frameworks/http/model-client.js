@@ -1,7 +1,7 @@
 'use strict'
 
 /**
- * Cliente HTTP hacia el servicio de inferencia (alp-cr-access-risk-model).
+ * Cliente HTTP hacia el servicio de inferencia (access-risk-model).
  * Usa `fetch` nativo (Node 24) con timeout por AbortController.
  *
  * Las lecturas (predict, metrics, info/registro del modelo) son internas. Las

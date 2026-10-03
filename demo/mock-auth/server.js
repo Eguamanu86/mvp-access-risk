@@ -3,9 +3,9 @@
 const { randomUUID } = require('crypto')
 
 /**
- * Consumidor simulado de EP-Platform (AuthController).
+ * Consumidor simulado de autenticacion (AuthController).
  *
- * Emula el flujo real de autenticacion de Enviame: recibe el intento de login,
+ * Emula un flujo de autenticacion real: recibe el intento de login,
  * consulta el servicio de riesgo y decide (permitir / exigir 2FA / bloquear).
  * Ante la indisponibilidad del servicio, aplica el fallback (exigir 2FA).
  *

@@ -1,6 +1,6 @@
 # MVP — Servicio Inteligente de Riesgo de Acceso
 
-Demostración ejecutable del caso transversal del módulo **MIS-312**: un sistema que evalúa el riesgo de un intento de acceso y decide de forma graduada, siguiendo el estándar de ingeniería de Enviame (arquitectura hexagonal, GCP Cloud Run, CI/CD en Bitbucket).
+Demostración ejecutable del caso transversal del módulo **MIS-312**: un sistema que evalúa el riesgo de un intento de acceso y decide de forma graduada, con arquitectura hexagonal, GCP Cloud Run y CI/CD en Bitbucket.
 
 > **Mensaje central:** *el backend orquesta, la IA opina y el backend decide.* Un modelo de IA no es un sistema inteligente completo.
 
@@ -52,7 +52,7 @@ Cuando termine, abre la interfaz en **http://localhost:5173**. Para detener: `do
 |---|---|---|---|
 | `services/access-risk-model` | Servicio de inferencia (el modelo) | Python / Flask | interna (red Docker; gestión vía backend `/v1/model`) |
 | `services/access-risk-api` | Servicio de riesgo (reglas, fallback, métricas, persistencia) | Node 24 / Express 5 (hexagonal) | vía gateway (`/v1`) |
-| `demo/mock-auth` | Consumidor simulado (EP-Platform `AuthController`) | Node 24 / Express 5 | vía gateway (`/demo`) |
+| `demo/mock-auth` | Consumidor simulado (`AuthController`) | Node 24 / Express 5 | vía gateway (`/demo`) |
 | `web` | Interfaz de demostración (UX) | React + Vite + TypeScript | `5173` |
 | `gateway` | API Gateway (punto de entrada único) | Traefik v3 | `8210` / dashboard `8214` |
 | `mlops/mlflow` | Tracking de experimentos + registro de modelos | MLflow (Python) | `5000` |
@@ -336,7 +336,7 @@ cd services/access-risk-api && npm run test_u && npm run test_i && npm run linte
 { "signals": { "deviceKnown": false, "failedAttempts": 2, "locationShiftKm": 850, "hour": 3, "velocityKmh": 900 } }
 ```
 
-Respuesta (contrato estándar Enviame):
+Respuesta (contrato estándar):
 
 ```json
 {
@@ -378,7 +378,7 @@ mvp-access-risk/
 ├── services/
 │   ├── access-risk-model/    # Python (inferencia + ciclo MLOps)
 │   └── access-risk-api/      # Node hexagonal (reglas, fallback, métricas, persistencia)
-├── demo/mock-auth/           # Consumidor simulado (EP-Platform)
+├── demo/mock-auth/           # Consumidor simulado de autenticación
 ├── mlops/                    # MLflow (Dockerfile) y SQL de inicialización de Postgres
 ├── web/                      # React + Vite + TypeScript
 └── docker-compose.yaml       # stack completo (gateway + servicios + web + postgres + minio + mlflow)
@@ -393,12 +393,7 @@ mvp-access-risk/
 - `docs/03-analisis-emulacion-multinube.md` — Portabilidad local ↔ nube
 - `docs/diagramas/` — Diagramas de arquitectura y flujo
 
-## 15. Referencias (estándar Enviame)
-
-- `mg-cr-users-api` — referencia de arquitectura hexagonal y Docker/CI-CD.
-- Flujo de autenticación de EP-Platform (Backend Auth Proxy), MFA/2FA, dispositivos de confianza.
-
-## 16. Ruta sugerida para estudiantes
+## 15. Ruta sugerida para estudiantes
 
 1. **Levanta el stack** (sección 1) y abre http://localhost:5173.
 2. **Entiende el flujo** con la imagen de la sección 3 y el diagrama interactivo (pestaña **Arquitectura** de la interfaz, o `docs/diagramas/`).

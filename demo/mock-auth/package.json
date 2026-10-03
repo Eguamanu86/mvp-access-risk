@@ -1,7 +1,7 @@
 {
   "name": "demo-mock-auth",
   "version": "1.0.0",
-  "description": "Consumidor simulado de EP-Platform (AuthController) para la demo",
+  "description": "Consumidor simulado de autenticacion (AuthController) para la demo",
   "type": "commonjs",
   "main": "server.js",
   "private": true,

@@ -80,5 +80,5 @@
 - **Registro de modelos gestionado:** reemplazar `model.json` + `registry.json` por un registro (GCS versionado o Vertex AI Model Registry).
 - **Disparador automático de reentrenamiento:** conectar la alerta de drift (Cloud Monitoring) a un job (Cloud Scheduler + Pub/Sub + Cloud Build).
 - **Rollback automatizado** y **despliegue canario** (champion/challenger) del modelo.
-- **Auditoría persistente** de decisiones (hoy en memoria; el flujo real de EP-Platform ya la tiene).
+- **Auditoría persistente** de decisiones (hoy en memoria; un flujo de autenticación real ya la tiene).
 - **Autenticación servicio a servicio real** con IAM de Cloud Run e identidades de servicio.

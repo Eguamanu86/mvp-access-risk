@@ -1,6 +1,6 @@
 # Fase 2 — Planificación
 
-**Proyecto:** MVP — `mg-cr-access-risk-api` + `alp-cr-access-risk-model` + interfaz
+**Proyecto:** MVP — `access-risk-api` + `access-risk-model` + interfaz
 **Módulo:** MIS-312
 **Base:** Fase 1 — Análisis (validado)
 **Estado:** Planificación (a validar antes de Implementación)
@@ -9,11 +9,11 @@
 
 ## 1. Resumen ejecutivo
 
-Se planifica un MVP de **cuatro componentes** que reproduce, a escala de demostración, la arquitectura real de Enviame:
+Se planifica un MVP de **cuatro componentes** que reproduce, a escala de demostración, una arquitectura de referencia:
 
-1. **Servicio de inferencia** `alp-cr-access-risk-model` (Python, Cloud Run) — el modelo de riesgo.
-2. **Servicio de riesgo** `mg-cr-access-risk-api` (Node hexagonal, Cloud Run) — reglas, fallback y métricas.
-3. **Consumidor simulado** `demo/mock-auth` (Node) — emula el `AuthController` de EP-Platform.
+1. **Servicio de inferencia** `access-risk-model` (Python, Cloud Run) — el modelo de riesgo.
+2. **Servicio de riesgo** `access-risk-api` (Node hexagonal, Cloud Run) — reglas, fallback y métricas.
+3. **Consumidor simulado** `demo/mock-auth` (Node) — emula el `AuthController` de autenticación.
 4. **Interfaz web** — aplicación completa con estándares de UX/usabilidad para la clase.
 
 Todo corre local con `docker-compose` y se despliega en GCP siguiendo el estándar (Cloud Run, Secret Manager, Cloud Build, Bitbucket Pipelines, SonarQube).
@@ -34,8 +34,8 @@ Todo corre local con `docker-compose` y se despliega en GCP siguiendo el estánd
 
 | # | Componente | Entregables |
 |---|---|---|
-| 1 | `alp-cr-access-risk-model` (Python) | `train.py`, `app.py` (puerto/adapters), `model.json`, `requirements.txt`, `Dockerfile`, tests |
-| 2 | `mg-cr-access-risk-api` (Node) | `src/` hexagonal, tests `ut`/`it`, `Dockerfile`, `bitbucket-pipelines.yml`, `cloudbuild.yaml`, `env.*.yaml` |
+| 1 | `access-risk-model` (Python) | `train.py`, `app.py` (puerto/adapters), `model.json`, `requirements.txt`, `Dockerfile`, tests |
+| 2 | `access-risk-api` (Node) | `src/` hexagonal, tests `ut`/`it`, `Dockerfile`, `bitbucket-pipelines.yml`, `cloudbuild.yaml`, `env.example.yaml` |
 | 3 | `demo/mock-auth` (Node) | App pequeña que emula `AuthController` (orquesta y decide) |
 | 4 | `web` | SPA con pantalla de login, panel de decisión, controles de demo y métricas |
 | 5 | Infra/entrega | `docker-compose.yaml`, `.env.example`, README, guion de demo |
@@ -46,8 +46,8 @@ Todo corre local con `docker-compose` y se despliega en GCP siguiendo el estánd
 mvp-access-risk/
 ├── docs/                        # análisis, HU, planificación
 ├── services/
-│   ├── access-risk-api/         # mg-cr-access-risk-api (Node hexagonal)
-│   └── access-risk-model/       # alp-cr-access-risk-model (Python)
+│   ├── access-risk-api/         # Node hexagonal
+│   └── access-risk-model/       # Python
 ├── demo/
 │   └── mock-auth/               # consumidor simulado (Node)
 ├── web/                         # interfaz (React + Vite + TypeScript)
@@ -58,8 +58,8 @@ mvp-access-risk/
 
 ```text
 ┌───────────────┐      ┌──────────────────────┐      ┌──────────────────────────┐      ┌─────────────────────────────┐
-│  web (SPA)    │─────►│  demo/mock-auth      │─────►│  mg-cr-access-risk-api   │─────►│  alp-cr-access-risk-model   │
-│  UX/usabilidad│      │  (EP-Platform sim.)  │      │  (Cloud Run · Node)      │      │  (Cloud Run · Python)       │
+│  web (SPA)    │─────►│  demo/mock-auth      │─────►│  access-risk-api         │─────►│  access-risk-model          │
+│  UX/usabilidad│      │  (auth simulado)     │      │  (Cloud Run · Node)      │      │  (Cloud Run · Python)       │
 └───────────────┘      │  orquesta y decide   │◄─────│  reglas + fallback       │◄─────│  inferencia del modelo      │
                        └──────────────────────┘      │  métricas + drift        │      │  determinista y versionado  │
                                                       └──────────────────────────┘      └─────────────────────────────┘
@@ -103,7 +103,7 @@ mvp-access-risk/
 
 ## 5. Contratos de API
 
-### 5.1. Servicio de riesgo `mg-cr-access-risk-api` (Cloud Run, puerto 8080)
+### 5.1. Servicio de riesgo `access-risk-api` (Cloud Run, puerto 8080)
 
 | Método | Ruta | Descripción |
 |---|---|---|
@@ -116,7 +116,7 @@ mvp-access-risk/
 ```json
 { "signals": { "deviceKnown": false, "failedAttempts": 2, "locationShiftKm": 850, "hour": 3, "velocityKmh": 900 } }
 ```
-**Response 200** (contrato estándar Enviame):
+**Response 200** (contrato estándar):
 ```json
 {
   "code": "success",
@@ -135,7 +135,7 @@ mvp-access-risk/
 - El servicio **siempre responde 200 con una decisión**; si la inferencia no está disponible, devuelve `fallback: true` y `decision: "REQUIRE_2FA"`.
 - Errores: `ParameterError` (400), `UnauthorizedError` (401).
 
-### 5.2. Servicio de inferencia `alp-cr-access-risk-model` (Cloud Run, puerto 8080)
+### 5.2. Servicio de inferencia `access-risk-model` (Cloud Run, puerto 8080)
 
 | Método | Ruta | Descripción |
 |---|---|---|
@@ -170,17 +170,17 @@ mvp-access-risk/
 
 **Circuit breaker (en el risk-api y en el mock-auth):** 3 fallos consecutivos → `open`; 10 s → `half-open` (una prueba); si responde, → `closed`.
 
-## 8. Estándares de ingeniería (Enviame)
+## 8. Estándares de ingeniería
 
-### 8.1. Servicio Node `mg-cr-access-risk-api`
+### 8.1. Servicio Node `access-risk-api`
 - Node `^24`, CommonJS estricto, Express 5 (sin `try/catch` + `next(err)`).
 - 4 capas: `adapters/routers` (factory), `usecases` (usecase + repos Singleton), `frameworks`, `utils`.
 - Errores tipados (`src/utils/errors.js`); Winston (prohibido `console.*`); Sequelize solo si hay persistencia.
 - Respuesta estándar `{ meta, code, message, data }`; `http-status-codes`.
 - Docker `node:24-alpine` no root; ESLint flat-config; Jest 29 + Supertest (`tests/ut`, `tests/it`).
 
-### 8.2. Servicio Python `alp-cr-access-risk-model`
-- Python hexagonal (ports/adapters), como `alp-cr-ia-code-reviewer`.
+### 8.2. Servicio Python `access-risk-model`
+- Python hexagonal (ports/adapters).
 - Framework mínimo (FastAPI o Flask); el modelo se carga de `model.json`.
 - Tests con `pytest`; Docker ligero; sin secretos en código.
 
@@ -188,7 +188,7 @@ mvp-access-risk/
 - **React + Vite + TypeScript**; build reproducible; consumo de la API del mock-auth.
 - Estado, errores y accesibilidad gestionados explícitamente (ver sección 9).
 
-### 8.4. Docker local (referencia: `mg-cr-users-api`)
+### 8.4. Docker local
 
 | Componente | Imagen base | Usuario | Puerto contenedor | Puerto local |
 |---|---|---|---|---|
@@ -202,7 +202,7 @@ mvp-access-risk/
 - **`docker-compose.yaml`** raíz con los 4 servicios, `env_file: .env`, volumen de código para desarrollo, límites (`DOCKER_LIMITS_CPUS`, `DOCKER_LIMITS_MEMORY`) y una red interna.
 - **`.env.example`** con las variables `DOCKER_*` (comandos y límites) y las de aplicación; las credenciales usan `SET_VIA_SECRET_MANAGER`.
 
-### 8.5. CI/CD y despliegue (referencia: `mg-cr-users-api`)
+### 8.5. CI/CD y despliegue
 
 - **Bitbucket Pipelines** (`bitbucket-pipelines.yml`): `image: node:24`; pasos `npm install` → `linter-test` → `coverage_u` → SonarQube *scan* + *quality gate*; se ejecuta en Pull Requests y en la rama `stage`.
 - **Cloud Build** (`cloudbuild.yaml`): build con `--cache-from`, push a **Artifact Registry** (`<region>-docker.pkg.dev/<proyecto>/<repo>/<servicio>`), y `gcloud run deploy` con `--startup-probe=httpGet.path=/ready` y `--env-vars-file=env.<ambiente>.yaml`.
@@ -224,7 +224,7 @@ mvp-access-risk/
 - **Estados explícitos:** normal, fallback, circuit open, drift.
 - **Accesibilidad (AA):** contraste suficiente, navegación por teclado, foco visible, `aria-live` para la decisión.
 - **Proyección:** tipografía y colores legibles a distancia; diseño responsive (escritorio y móvil).
-- **Consistencia:** paleta y componentes coherentes con la marca Enviame.
+- **Consistencia:** paleta y componentes coherentes.
 
 ## 10. Plan de trabajo y orden de ejecución
 
