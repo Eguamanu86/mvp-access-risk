@@ -8,13 +8,16 @@ Demostración ejecutable del caso transversal del módulo **MIS-312**: un sistem
 
 ## 1. Arranque rápido (Docker)
 
+> **Para estudiantes (empieza aquí):** 1) abre **Docker Desktop** y espera a que el motor arranque → 2) ejecuta el comando de abajo → 3) abre **http://localhost:5173** y entra con `admin@enviame.io` / `admin123` → 4) pulsa **Demo guiada** y juega con los controles de caos. La primera vez, `--build` descarga imágenes y compila la interfaz (puede tardar unos minutos).
+
 Requiere **Docker** con **Docker Compose v2**. Un solo comando levanta todo el flujo: gateway, servicios, interfaz, PostgreSQL, MinIO y MLflow.
 
 ```bash
-docker compose up --build -d
+docker compose up --build -d      # levantar (build + segundo plano)
+docker compose ps                 # verificar (postgres debe estar "healthy")
 ```
 
-Cuando termine, abre la interfaz en **http://localhost:5173**.
+Cuando termine, abre la interfaz en **http://localhost:5173**. Para detener: `docker compose stop` (conserva datos) o `docker compose down` (elimina contenedores); el detalle está en la sección 5.
 
 | Servicio | URL | Rol |
 |---|---|---|
@@ -38,14 +41,12 @@ Cuando termine, abre la interfaz en **http://localhost:5173**.
 
 ## 3. Arquitectura
 
-```text
-web ──► gateway ──► mock-auth ──► access-risk-api ──► access-risk-model
-        (Traefik)   (decide)      (reglas + fallback)   (inferencia)
-                          │               │                    │
-                          │               └──► PostgreSQL ◄────┘  (auditoría + feedback)
-                          │                        ▲
-                          └──────────────────────► MLflow (tracking + registro) ──► MinIO (artefactos)
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagramas/arquitectura-readme-dark.png">
+  <img alt="Arquitectura y flujo: interfaz web → API Gateway → mock-auth → access-risk-api → access-risk-model, con PostgreSQL, MLflow y MinIO" src="docs/diagramas/arquitectura-readme-light.png">
+</picture>
+
+**Cómo leerlo (de izquierda a derecha):** la interfaz entra por el **API Gateway**; el consumidor simulado (`mock-auth`) consulta al **servicio de riesgo** (`access-risk-api`), que aplica reglas y *fallback* y consulta al **modelo** (`access-risk-model`). Abajo: la auditoría vive en **PostgreSQL** y el ciclo MLOps va del pipeline a **MLflow** y sus artefactos en **MinIO**.
 
 | Componente | Rol | Stack | Exposición |
 |---|---|---|---|
@@ -396,3 +397,15 @@ mvp-access-risk/
 
 - `mg-cr-users-api` — referencia de arquitectura hexagonal y Docker/CI-CD.
 - Flujo de autenticación de EP-Platform (Backend Auth Proxy), MFA/2FA, dispositivos de confianza.
+
+## 16. Ruta sugerida para estudiantes
+
+1. **Levanta el stack** (sección 1) y abre http://localhost:5173.
+2. **Entiende el flujo** con la imagen de la sección 3 y el diagrama interactivo (pestaña **Arquitectura** de la interfaz, o `docs/diagramas/`).
+3. **Juega con la demo**: escenarios de riesgo bajo/medio/alto y controles de caos —servicio caído, latencia alta, data drift— (sección 4.2).
+4. **Recorre el ciclo MLOps**: pestaña **Modelo** (reentrenar, promover, revertir) y **Dashboard** (métricas, feedback, drift).
+5. **Entiende la resiliencia**: por qué el login nunca se cae (circuit breaker + *fallback* a 2FA).
+6. **Explora el código**: `services/access-risk-api` (Node hexagonal), `services/access-risk-model` (Python) y `demo/mock-auth` (consumidor simulado).
+7. **Ejecuta las pruebas** (sección 9) y revisa la documentación de fases (sección 14).
+
+**Preguntas guía:** ¿por qué la IA no decide? · ¿qué pasa si el modelo falla? · ¿cómo se reentrena sin tocar el login? · ¿dónde queda la evidencia (auditoría)?
