@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Flujo y arquitectura del servicio inteligente de riesgo de acceso",
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "camino-decision",
+        "label": "Camino de la decisión",
+        "focus": ["web", "gateway", "mock_auth", "risk_api", "model"],
+        "note": "Del intento de login a la decisión graduada."
+      },
+      {
+        "id": "resiliencia",
+        "label": "Resiliencia y fallback",
+        "focus": ["mock_auth", "risk_api", "model", "fallback"],
+        "note": "Qué ocurre si el servicio o el modelo fallan."
+      },
+      {
+        "id": "ciclo-mlops",
+        "label": "Ciclo MLOps",
+        "focus": ["risk_api", "model", "postgres", "mlflow", "minio"],
+        "note": "Persistencia, feedback, tracking y artefactos."
+      }
+    ]
+  },
+  "components": [
+    { "id": "web", "type": "frontend", "label": "Interfaz web", "sublabel": "React + Vite", "pos": [30, 180], "size": [120, 68] },
+    { "id": "gateway", "type": "security", "label": "API Gateway", "sublabel": "Traefik · :8210", "pos": [210, 178], "size": [125, 72] },
+    { "id": "mock_auth", "type": "backend", "label": "mock-auth", "sublabel": "consumidor EP-Platform", "pos": [400, 170], "size": [150, 90] },
+    { "id": "risk_api", "type": "backend", "label": "access-risk-api", "sublabel": "reglas · fallback · métricas", "pos": [610, 170], "size": [160, 90] },
+    { "id": "model", "type": "backend", "label": "access-risk-model", "sublabel": "inferencia · IA (Python)", "pos": [830, 170], "size": [160, 90] },
+    { "id": "fallback", "type": "security", "label": "Fallback", "sublabel": "exigir 2FA", "pos": [400, 400], "size": [145, 66] },
+    { "id": "postgres", "type": "database", "label": "PostgreSQL", "sublabel": "auditoría · auth", "pos": [610, 400], "size": [160, 70] },
+    { "id": "mlflow", "type": "cloud", "label": "MLflow", "sublabel": "tracking + registro", "pos": [830, 400], "size": [160, 70] },
+    { "id": "minio", "type": "cloud", "label": "MinIO", "sublabel": "artefactos (S3)", "pos": [1050, 400], "size": [160, 70] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Entorno local (Docker Compose)", "wraps": ["web", "gateway", "mock_auth", "risk_api", "model", "fallback", "postgres", "mlflow", "minio"], "pad": 28 },
+    { "kind": "security-group", "label": "servicios internos (solo vía gateway)", "wraps": ["mock_auth", "risk_api", "model"], "pad": 14 }
+  ],
+  "connections": [
+    { "from": "web", "to": "gateway", "label": "HTTP :8210", "variant": "emphasis" },
+    { "from": "gateway", "to": "mock_auth", "label": "ruta /demo/*", "variant": "emphasis" },
+    { "from": "mock_auth", "to": "risk_api", "label": "evaluate", "variant": "emphasis" },
+    { "from": "risk_api", "to": "model", "label": "predict", "variant": "emphasis" },
+    { "from": "mock_auth", "to": "fallback", "label": "si falla o timeout", "variant": "security", "fromSide": "bottom", "toSide": "top", "labelDy": 30 },
+    { "from": "risk_api", "to": "postgres", "label": "auditoría + feedback", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelDy": 30 },
+    { "from": "model", "to": "mlflow", "label": "pipeline + registro", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelDy": 30 },
+    { "from": "mlflow", "to": "minio", "label": "artefactos S3", "variant": "dashed", "fromSide": "right", "toSide": "left", "labelAt": [1020, 484] },
+    { "from": "mlflow", "to": "postgres", "label": "backend store", "variant": "dashed", "fromSide": "left", "toSide": "right", "labelDy": 64 }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "El backend orquesta, la IA opina, el backend decide", "items": ["La interfaz entra por el API Gateway", "El consumidor consulta al servicio de riesgo", "El modelo devuelve un score y un nivel", "La decisión final (ALLOW / 2FA / BLOCK) la toma el backend"] },
+    { "dot": "emerald", "title": "Ciclo MLOps completo", "items": ["Cada decisión se persiste en PostgreSQL", "El feedback real (fraude / legítimo) etiqueta la decisión", "El pipeline registra runs en MLflow", "Los artefactos y versiones del modelo viven en MinIO"] },
+    { "dot": "amber", "title": "Degradación segura (fallback)", "items": ["Circuit breaker y timeout ante el servicio caído", "El fallback exige 2FA: el login nunca se cae", "Degradación controlada, nunca bloqueo total"] }
+  ]
+}

@@ -1,0 +1,44 @@
+steps:
+
+  - id: pull-cache
+    name: 'gcr.io/cloud-builders/docker'
+    args: ['pull', 'us-central1-docker.pkg.dev/$_REPOSITORY_PROJECT/$_REPOSITORY_NAME/$_SERVICE_NAME:latest']
+    allowFailure: true
+
+  - id: cr-image-build
+    name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '--cache-from', 'us-central1-docker.pkg.dev/$_REPOSITORY_PROJECT/$_REPOSITORY_NAME/$_SERVICE_NAME:latest',
+      '-t', 'us-central1-docker.pkg.dev/$_REPOSITORY_PROJECT/$_REPOSITORY_NAME/$_SERVICE_NAME:$SHORT_SHA',
+      '-t', 'us-central1-docker.pkg.dev/$_REPOSITORY_PROJECT/$_REPOSITORY_NAME/$_SERVICE_NAME:latest',
+      '.'
+    ]
+    waitFor: ['pull-cache']
+
+  - id: cr-image-push
+    name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '--all-tags', 'us-central1-docker.pkg.dev/$_REPOSITORY_PROJECT/$_REPOSITORY_NAME/$_SERVICE_NAME']
+    waitFor: ['cr-image-build']
+
+  - id: cr-deploy
+    name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - run
+      - deploy
+      - $_SERVICE_NAME
+      - --project=$_DEPLOY_PROJECT
+      - --image=us-central1-docker.pkg.dev/$_REPOSITORY_PROJECT/$_REPOSITORY_NAME/$_SERVICE_NAME:$SHORT_SHA
+      - --region=us-central1
+      - --no-allow-unauthenticated
+      - --startup-probe=httpGet.path=/health,initialDelaySeconds=5,failureThreshold=10,timeoutSeconds=1,periodSeconds=2
+      - --env-vars-file=env.$_APP_ENV.yaml
+    waitFor: ['cr-image-push']
+
+substitutions:
+  _REPOSITORY_PROJECT: $PROJECT_ID
+  _REPOSITORY_NAME: madagascar-artifacts
+  _SERVICE_NAME: $REPO_NAME
+
+options:
+  logging: CLOUD_LOGGING_ONLY

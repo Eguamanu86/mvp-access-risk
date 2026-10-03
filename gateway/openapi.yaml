@@ -1,0 +1,116 @@
+swagger: "2.0"
+info:
+  title: Access Risk API (MVP)
+  description: |
+    Contrato del API Gateway para el MVP de riesgo de acceso.
+    Local: Traefik enruta /demo/* y /v1/access-risk/* a los servicios.
+    GCP: API Gateway enruta a los servicios de Cloud Run con el mismo contrato.
+  version: "1.0.0"
+schemes:
+  - https
+produces:
+  - application/json
+consumes:
+  - application/json
+paths:
+  /demo/login:
+    post:
+      summary: Simula un intento de login (consumidor EP-Platform)
+      operationId: demoLogin
+      x-google-backend:
+        address: https://demo-mock-auth-<hash>-uc.a.run.app
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        "200":
+          description: Decisión de acceso
+  /demo/chaos:
+    post:
+      summary: Controla el caos de la demo (caída, latencia, drift)
+      operationId: demoChaos
+      x-google-backend:
+        address: https://demo-mock-auth-<hash>-uc.a.run.app
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        "200":
+          description: Estado del caos
+  /v1/access-risk/evaluate:
+    post:
+      summary: Evalúa el riesgo de un intento de acceso
+      operationId: evaluateRisk
+      x-google-backend:
+        address: https://mg-cr-access-risk-api-<hash>-uc.a.run.app
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        "200":
+          description: Score, nivel y decisión
+  /v1/access-risk/metrics:
+    get:
+      summary: Métricas del servicio de riesgo
+      operationId: riskMetrics
+      x-google-backend:
+        address: https://mg-cr-access-risk-api-<hash>-uc.a.run.app
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        "200":
+          description: Métricas
+  # Gestión del modelo: pasa por el backend (no se expone /model en el gateway).
+  /v1/model/info:
+    get:
+      summary: Información del modelo activo (requiere sesión)
+      operationId: modelInfo
+      x-google-backend:
+        address: https://mg-cr-access-risk-api-<hash>-uc.a.run.app
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        "200":
+          description: Versión, features y umbrales
+  /v1/model/versions:
+    get:
+      summary: Registro de versiones del modelo (requiere sesión)
+      operationId: modelVersions
+      x-google-backend:
+        address: https://mg-cr-access-risk-api-<hash>-uc.a.run.app
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        "200":
+          description: Versiones registradas
+  /v1/model/pipeline:
+    get:
+      summary: Estado del pipeline de reentrenamiento (requiere sesión)
+      operationId: modelPipeline
+      x-google-backend:
+        address: https://mg-cr-access-risk-api-<hash>-uc.a.run.app
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        "200":
+          description: Estado del pipeline
+  /v1/model/promote:
+    post:
+      summary: Promueve una versión del modelo (solo administrador)
+      operationId: modelPromote
+      x-google-backend:
+        address: https://mg-cr-access-risk-api-<hash>-uc.a.run.app
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        "200":
+          description: Versión activa
+  /v1/model/rollback:
+    post:
+      summary: Revierte a la versión anterior (solo administrador)
+      operationId: modelRollback
+      x-google-backend:
+        address: https://mg-cr-access-risk-api-<hash>-uc.a.run.app
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        "200":
+          description: Versión activa
+  /v1/model/retrain:
+    post:
+      summary: Dispara el reentrenamiento del modelo (solo administrador)
+      operationId: modelRetrain
+      x-google-backend:
+        address: https://mg-cr-access-risk-api-<hash>-uc.a.run.app
+        path_translation: APPEND_PATH_TO_ADDRESS
+      responses:
+        "200":
+          description: Estado del pipeline

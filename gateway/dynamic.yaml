@@ -1,0 +1,38 @@
+# Configuracion dinamica de Traefik (provider file).
+#
+# Se enruta por DNS de la red interna de Docker, sin depender del socket de
+# Docker. Esto evita la incompatibilidad del provider docker con Docker Engine
+# 29 (API 1.56) y es mas portable entre entornos.
+
+http:
+  routers:
+    mock-auth:
+      rule: "PathPrefix(`/demo`)"
+      entryPoints:
+        - web
+      middlewares:
+        - mock-auth-ratelimit
+      service: mock-auth
+
+    risk-api:
+      rule: "PathPrefix(`/v1`)"
+      entryPoints:
+        - web
+      service: risk-api
+
+  services:
+    mock-auth:
+      loadBalancer:
+        servers:
+          - url: "http://mock-auth:8080"
+
+    risk-api:
+      loadBalancer:
+        servers:
+          - url: "http://access-risk-api:8080"
+
+  middlewares:
+    mock-auth-ratelimit:
+      rateLimit:
+        average: 50
+        burst: 100

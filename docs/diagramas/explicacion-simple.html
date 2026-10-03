@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cómo funciona la IA — explicación simple</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+    .deck { position: relative; height: 100vh; width: 100%; }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 5vh 6vw;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(24px);
+      transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s;
+    }
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .inner { width: 100%; max-width: 900px; }
+
+    .eyebrow {
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin: 0 0 14px;
+    }
+    .block-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .block-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: var(--accent);
+      color: #082f49;
+      font-weight: 800;
+      font-size: 1.3rem;
+    }
+    .block-name {
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+    }
+    h1 {
+      font-size: 2.4rem;
+      line-height: 1.15;
+      margin: 0 0 12px;
+    }
+    h2 {
+      font-size: 1.9rem;
+      line-height: 1.2;
+      margin: 0 0 10px;
+    }
+    .lead {
+      color: var(--muted);
+      font-size: 1.15rem;
+      margin: 0 0 26px;
+    }
+    ul.points {
+      list-style: none;
+      margin: 0 0 26px;
+      padding: 0;
+      display: grid;
+      gap: 12px;
+    }
+    ul.points li {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 1.1rem;
+    }
+    .analogy {
+      display: flex;
+      gap: 12px;
+      align-items: baseline;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px dashed var(--accent);
+      border-radius: 10px;
+      padding: 14px 18px;
+      color: var(--text);
+      font-size: 1.05rem;
+      font-style: italic;
+    }
+    .analogy b { color: var(--accent); font-style: normal; }
+
+    .flowline {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin: 28px 0 0;
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+    .flowline .step {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 16px;
+    }
+    .flowline .arrow { color: var(--accent); }
+
+    .oneline {
+      font-size: 1.6rem;
+      line-height: 1.4;
+      margin: 6px 0 0;
+    }
+    .oneline b { color: var(--accent); }
+
+    /* Controles */
+    .controls {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      pointer-events: none;
+    }
+    .controls .btn {
+      pointer-events: auto;
+      font: inherit;
+      color: var(--text);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 16px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .controls .btn:hover { border-color: var(--accent); }
+    .controls .btn:disabled { opacity: 0.35; cursor: default; }
+    .dots { display: flex; gap: 8px; pointer-events: auto; }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 0;
+      background: var(--border);
+      cursor: pointer;
+      padding: 0;
+    }
+    .dot.active { background: var(--accent); }
+    .counter {
+      position: fixed;
+      top: 20px;
+      right: 24px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="deck" id="deck">
+    <div class="counter" id="counter"></div>
+
+    <!-- Portada -->
+    <section class="slide active">
+      <div class="inner">
+        <p class="eyebrow">MIS-312 · MLOps</p>
+        <h1>Cómo funciona la IA del MVP de riesgo de acceso</h1>
+        <p class="lead">Explicación simple, bloque por bloque.</p>
+        <div class="analogy"><b>Usa las flechas</b> ← → o los botones para navegar.</div>
+      </div>
+    </section>
+
+    <!-- Bloque 1 -->
+    <section class="slide">
+      <div class="inner">
+        <div class="block-tag"><span class="block-num">1</span><span class="block-name">Entrada</span></div>
+        <h2>Llega el intento de login</h2>
+        <p class="lead">El sistema recoge 5 datos del intento:</p>
+        <ul class="points">
+          <li>¿El dispositivo es de confianza?</li>
+          <li>¿Cuántos intentos fallidos hubo?</li>
+          <li>¿Se movió muy lejos y muy rápido?</li>
+          <li>¿A qué hora entró?</li>
+          <li>¿A qué velocidad se desplazó?</li>
+        </ul>
+        <div class="analogy"><b>Como un portero:</b> mira quién llega antes de decidir si abre.</div>
+      </div>
+    </section>
+
+    <!-- Bloque 2 -->
+    <section class="slide">
+      <div class="inner">
+        <div class="block-tag"><span class="block-num">2</span><span class="block-name">Features</span></div>
+        <h2>Traducir los datos</h2>
+        <p class="lead">El modelo convierte todo a números del 0 al 1.</p>
+        <ul class="points">
+          <li>Así todos los datos quedan en la misma escala.</li>
+          <li>“Dispositivo desconocido” = 1 · “de confianza” = 0.</li>
+          <li>Se pueden comparar de forma justa.</li>
+        </ul>
+        <div class="analogy"><b>Como una receta:</b> primero se miden todos los ingredientes igual.</div>
+      </div>
+    </section>
+
+    <!-- Bloque 3 -->
+    <section class="slide">
+      <div class="inner">
+        <div class="block-tag"><span class="block-num">3</span><span class="block-name">Modelo</span></div>
+        <h2>La calculadora de riesgo</h2>
+        <p class="lead">El modelo combina los datos con pesos que aprendió solo.</p>
+        <ul class="points">
+          <li>Cada dato aporta más o menos según su peso.</li>
+          <li>La suma de todo da un solo número: <b>z</b>.</li>
+        </ul>
+        <div class="analogy"><b>Como una receta:</b> cada ingrediente pesa distinto en el resultado.</div>
+      </div>
+    </section>
+
+    <!-- Bloque 4 -->
+    <section class="slide">
+      <div class="inner">
+        <div class="block-tag"><span class="block-num">4</span><span class="block-name">Decisión</span></div>
+        <h2>¿Cuánto riesgo hay?</h2>
+        <p class="lead">El número se convierte en un puntaje de 0 a 1.</p>
+        <ul class="points">
+          <li>Puntaje bajo → <b>dejar entrar</b>.</li>
+          <li>Puntaje medio → <b>pedir segundo factor (2FA)</b>.</li>
+          <li>Puntaje alto → <b>bloquear</b>.</li>
+          <li>La IA solo opina; el sistema (backend) decide.</li>
+        </ul>
+        <div class="analogy"><b>Como un semáforo:</b> verde, amarillo o rojo según el puntaje.</div>
+      </div>
+    </section>
+
+    <!-- Bloque 5 -->
+    <section class="slide">
+      <div class="inner">
+        <div class="block-tag"><span class="block-num">5</span><span class="block-name">Mejora</span></div>
+        <h2>Aprender de los resultados</h2>
+        <p class="lead">Cada decisión se guarda y luego se revisa.</p>
+        <ul class="points">
+          <li>Se marca si en realidad fue <b>fraude o legítimo</b>.</li>
+          <li>Si los datos cambian mucho (<b>drift</b>) → se reentrena.</li>
+          <li>Solo se adopta el modelo nuevo <b>si es mejor</b>.</li>
+        </ul>
+        <div class="analogy"><b>Como estudiar los errores:</b> aprender de lo que pasó para mejorar.</div>
+      </div>
+    </section>
+
+    <!-- Resumen -->
+    <section class="slide">
+      <div class="inner">
+        <p class="eyebrow">En una frase</p>
+        <p class="oneline">El sistema <b>recoge los datos</b> del intento, calcula un <b>puntaje de riesgo</b>, <b>decide</b> qué hacer y <b>aprende</b> de lo que pasó para mejorar.</p>
+        <div class="flowline">
+          <span class="step">Señales</span><span class="arrow">→</span>
+          <span class="step">Features</span><span class="arrow">→</span>
+          <span class="step">Modelo</span><span class="arrow">→</span>
+          <span class="step">Decisión</span><span class="arrow">→</span>
+          <span class="step">Mejora</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="prev" type="button">← Anterior</button>
+    <div class="dots" id="dots"></div>
+    <button class="btn" id="next" type="button">Siguiente →</button>
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const dotsBox = document.getElementById('dots');
+    const counter = document.getElementById('counter');
+    const prev = document.getElementById('prev');
+    const next = document.getElementById('next');
+    let index = 0;
+
+    slides.forEach((_, i) => {
+      const dot = document.createElement('button');
+      dot.className = 'dot';
+      dot.type = 'button';
+      dot.setAttribute('aria-label', 'Ir a la diapositiva ' + (i + 1));
+      dot.addEventListener('click', () => go(i));
+      dotsBox.appendChild(dot);
+    });
+    const dots = Array.from(dotsBox.children);
+
+    function render() {
+      slides.forEach((s, i) => s.classList.toggle('active', i === index));
+      dots.forEach((d, i) => d.classList.toggle('active', i === index));
+      counter.textContent = (index + 1) + ' / ' + slides.length;
+      prev.disabled = index === 0;
+      next.disabled = index === slides.length - 1;
+    }
+    function go(i) {
+      index = Math.max(0, Math.min(slides.length - 1, i));
+      render();
+    }
+
+    prev.addEventListener('click', () => go(index - 1));
+    next.addEventListener('click', () => go(index + 1));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); go(index + 1); }
+      if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(index - 1); }
+      if (e.key === 'Home') go(0);
+      if (e.key === 'End') go(slides.length - 1);
+    });
+    render();
+  </script>
+</body>
+</html>

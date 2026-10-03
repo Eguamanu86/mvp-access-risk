@@ -1,0 +1,21 @@
+{
+  "active": "1.0.0",
+  "versions": [
+    {
+      "version": "1.0.1",
+      "validationAccuracy": 0.783,
+      "trainedOn": 4000,
+      "source": "retrain",
+      "promoted": true,
+      "timestamp": "2026-09-20T03:52:07.085128+00:00"
+    },
+    {
+      "version": "1.0.0",
+      "validationAccuracy": 0.694,
+      "trainedOn": 4000,
+      "source": "train",
+      "promoted": true,
+      "timestamp": "2026-09-20T03:54:07.365997+00:00"
+    }
+  ]
+}

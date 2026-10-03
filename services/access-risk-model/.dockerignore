@@ -1,0 +1,12 @@
+# Ignorar todo, menos lo que sigue a continuacion
+*
+
+!requirements.txt
+!requirements-mlops.txt
+!src/
+!model.json
+!train.py
+!retrain.py
+!model_registry.py
+!mlflow_logger.py
+!models/

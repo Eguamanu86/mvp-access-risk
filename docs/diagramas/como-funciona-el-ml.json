@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Cómo funciona el modelo de ML en el MVP de riesgo de acceso",
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "viewBox": [1070, 520],
+    "views": [
+      {
+        "id": "inferencia",
+        "label": "Inferencia (cada login)",
+        "focus": ["signals", "features", "logreg", "level", "decision"],
+        "note": "De las señales del intento a la decisión del backend."
+      },
+      {
+        "id": "modelo",
+        "label": "El modelo",
+        "focus": ["model_json", "logreg", "level"],
+        "note": "Regresión logística: pesos + bias sobre las features."
+      },
+      {
+        "id": "mejora",
+        "label": "Mejora continua (MLOps)",
+        "focus": ["audit", "drift", "retrain", "model_json"],
+        "note": "Feedback, drift, puerta de calidad y versionado."
+      }
+    ]
+  },
+  "stages": [
+    { "label": "Entrada" },
+    { "label": "Features" },
+    { "label": "Modelo" },
+    { "label": "Decisión" },
+    { "label": "Mejora (MLOps)" }
+  ],
+  "nodes": [
+    { "id": "signals", "type": "external", "label": "Señales del intento", "sublabel": "5 por login", "stage": 0, "row": 1 },
+    { "id": "features", "type": "backend", "label": "Normalización", "sublabel": "5 features (0..1)", "stage": 1, "row": 1 },
+    { "id": "model_json", "type": "database", "label": "model.json", "sublabel": "pesos + umbrales", "stage": 2, "row": 2 },
+    { "id": "logreg", "type": "backend", "label": "Regresión logística", "sublabel": "z = bias + Σ wᵢ·xᵢ", "stage": 2, "row": 1 },
+    { "id": "level", "type": "backend", "label": "Sigmoide + umbrales", "sublabel": "score → nivel", "stage": 3, "row": 1 },
+    { "id": "decision", "type": "security", "label": "Decisión final", "sublabel": "ALLOW · 2FA · BLOCK", "stage": 3, "row": 2 },
+    { "id": "audit", "type": "database", "label": "Auditoría", "sublabel": "etiquetas reales", "stage": 4, "row": 0 },
+    { "id": "drift", "type": "security", "label": "Detección de drift", "sublabel": "PSI > 0.25", "stage": 4, "row": 1 },
+    { "id": "retrain", "type": "backend", "label": "Reentrenamiento", "sublabel": "train.py + registro", "stage": 4, "row": 2 }
+  ],
+  "flows": [
+    { "from": "signals", "to": "features", "label": "5 señales", "variant": "emphasis" },
+    { "from": "features", "to": "logreg", "label": "vector x", "variant": "emphasis" },
+    { "from": "model_json", "to": "logreg", "label": "pesos + bias", "variant": "dashed" },
+    { "from": "logreg", "to": "level", "label": "z → σ(z)", "variant": "emphasis" },
+    { "from": "level", "to": "decision", "label": "nivel", "variant": "emphasis", "labelDy": 24 },
+    { "from": "decision", "to": "audit", "label": "cada decisión", "variant": "dashed" },
+    { "from": "audit", "to": "drift", "label": "población reciente", "variant": "dashed", "labelDy": 24 },
+    { "from": "drift", "to": "retrain", "label": "alerta de drift", "variant": "security", "labelDy": 24 },
+    { "from": "retrain", "to": "model_json", "label": "nueva versión", "variant": "dashed", "route": "bottom-channel" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Entrada y features", "items": ["5 señales del intento → 5 features (0..1)", "deviceKnown → deviceUnknown", "resto escaladas a 0..1"] },
+    { "dot": "emerald", "title": "Del score a la decisión", "items": ["z = bias + Σ wᵢ·xᵢ → sigmoide", "umbrales: <0.33 LOW · >0.66 HIGH", "el backend decide: ALLOW · 2FA · BLOCK"] },
+    { "dot": "amber", "title": "Mejora continua (MLOps)", "items": ["cada decisión se etiqueta (feedback)", "drift (PSI > 0.25) → reentrenar", "puerta de calidad + versionado"] }
+  ]
+}

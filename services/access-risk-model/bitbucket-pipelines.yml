@@ -1,0 +1,43 @@
+image: python:3.12-slim
+
+definitions:
+  caches:
+    pip:
+      key:
+        files:
+          - requirements.txt
+      path: ~/.cache/pip
+  steps:
+    - step: &install
+        name: Install dependencies
+        caches:
+          - pip
+        script:
+          - pip install -r requirements.txt
+    - step: &tests
+        name: Run tests
+        caches:
+          - pip
+        script:
+          - pip install -r requirements.txt
+          - python -m pytest tests/ -q
+    - step: &train
+        name: Training pipeline (quality gate)
+        caches:
+          - pip
+        script:
+          - pip install -r requirements.txt
+          - python train.py
+          - python retrain.py --concept-drift
+
+pipelines:
+  pull-requests:
+    "**":
+      - step: *install
+      - step: *tests
+      - step: *train
+  branches:
+    "{stage}":
+      - step: *install
+      - step: *tests
+      - step: *train

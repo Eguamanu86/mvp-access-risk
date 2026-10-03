@@ -1,0 +1,5 @@
+# Ignorar todo, menos lo que sigue a continuacion
+*
+
+!package*.json
+!src/

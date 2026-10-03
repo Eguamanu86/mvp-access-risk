@@ -1,0 +1,160 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: access_risk
+      POSTGRES_USER: access_risk
+      POSTGRES_PASSWORD: access_risk
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./services/access-risk-api/db/ddl.sql:/docker-entrypoint-initdb.d/10-ddl.sql:ro
+      - ./mlops/postgres/01-create-mlflow.sql:/docker-entrypoint-initdb.d/01-create-mlflow.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U access_risk -d access_risk"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    networks:
+      - access-risk
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    volumes:
+      - miniodata:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - access-risk
+
+  minio-init:
+    image: quay.io/minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 minio minio123; do sleep 1; done;
+      mc mb -p local/mlflow || true;
+      exit 0;
+      "
+    networks:
+      - access-risk
+
+  mlflow:
+    build: ./mlops/mlflow
+    command: >
+      mlflow server
+      --backend-store-uri postgresql://access_risk:access_risk@postgres:5432/mlflow
+      --default-artifact-root s3://mlflow
+      --host 0.0.0.0
+      --port 5000
+    environment:
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: minio
+      AWS_SECRET_ACCESS_KEY: minio123
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    networks:
+      - access-risk
+
+  access-risk-model:
+    build: ./services/access-risk-model
+    environment:
+      - APP_ENV=local
+      - PORT=8080
+      # Token servicio a servicio para los endpoints de gestion del modelo.
+      - MANAGE_TOKEN=local-manage-token
+    volumes:
+      - ./services/access-risk-model:/app
+    networks:
+      - access-risk
+
+  access-risk-api:
+    build: ./services/access-risk-api
+    environment:
+      - APP_ENV=local
+      - PORT=8080
+      - LOG_LEVEL=info
+      - MODEL_SERVICE_URL=http://access-risk-model:8080
+      # Downstream (modelo) < upstream (mock-auth): evita el fallback prematuro.
+      - MODEL_TIMEOUT_MS=150
+      - MODEL_MANAGE_TOKEN=local-manage-token
+      - CIRCUIT_FAILURE_THRESHOLD=3
+      - CIRCUIT_COOLDOWN_MS=10000
+      - DB_ENABLED=true
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=access_risk
+      - DB_USER=access_risk
+      - DB_PASSWORD=access_risk
+      - SEED_USERS=true
+      - SESSION_TTL_MINUTES=480
+    depends_on:
+      access-risk-model:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    networks:
+      - access-risk
+
+  mock-auth:
+    build: ./demo/mock-auth
+    environment:
+      - APP_ENV=local
+      - PORT=8080
+      - RISK_API_URL=http://access-risk-api:8080
+      - RISK_TIMEOUT_MS=250
+      - CIRCUIT_FAILURE_THRESHOLD=3
+      - CIRCUIT_COOLDOWN_MS=10000
+    depends_on:
+      - access-risk-api
+    networks:
+      - access-risk
+
+  web:
+    build:
+      context: ./web
+      args:
+        VITE_API_URL: http://localhost:8210
+    ports:
+      - "5173:80"
+    depends_on:
+      - mock-auth
+    networks:
+      - access-risk
+
+  gateway:
+    image: traefik:v3.5
+    command:
+      # Provider file: ruteo por DNS de la red interna (sin socket de Docker).
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
+      - --entrypoints.web.address=:80
+      - --api.insecure=true
+      - --accesslog=true
+    ports:
+      - "8210:80"
+      - "8214:8080"
+    volumes:
+      - ./gateway/dynamic.yaml:/etc/traefik/dynamic/dynamic.yaml:ro
+    networks:
+      - access-risk
+
+volumes:
+  pgdata:
+  miniodata:
+
+networks:
+  access-risk:
+    name: access-risk

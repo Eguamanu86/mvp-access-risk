@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Arquitectura del MVP de riesgo de acceso",
+    "output": "web/public/flujo.html",
+    "animation": "trace",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    { "id": "web", "type": "frontend", "label": "Interfaz web", "sublabel": "React + Vite", "pos": [30, 180], "size": [120, 68] },
+    { "id": "gateway", "type": "security", "label": "API Gateway", "sublabel": "Traefik", "pos": [210, 178], "size": [125, 72] },
+    { "id": "mock_auth", "type": "backend", "label": "mock-auth", "sublabel": "EP-Platform simulado", "pos": [400, 170], "size": [145, 90] },
+    { "id": "risk_api", "type": "backend", "label": "mg-cr-access-risk-api", "sublabel": "reglas + fallback", "pos": [610, 170], "size": [160, 90] },
+    { "id": "model", "type": "backend", "label": "alp-cr-access-risk-model", "sublabel": "inferencia (Python)", "pos": [830, 170], "size": [160, 90] },
+    { "id": "fallback", "type": "security", "label": "Fallback", "sublabel": "exigir 2FA", "pos": [400, 400], "size": [145, 66] },
+    { "id": "postgres", "type": "database", "label": "PostgreSQL", "sublabel": "auditoría + muestras", "pos": [610, 400], "size": [160, 70] },
+    { "id": "mlflow", "type": "external", "label": "MLflow", "sublabel": "tracking + registro", "pos": [830, 400], "size": [160, 70] },
+    { "id": "minio", "type": "external", "label": "MinIO", "sublabel": "artefactos (S3)", "pos": [1050, 400], "size": [160, 70] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "MVP · local (Docker) + GCP (Cloud Run)", "wraps": ["web", "gateway", "mock_auth", "risk_api", "model", "fallback", "postgres", "mlflow", "minio"], "pad": 28 }
+  ],
+  "connections": [
+    { "from": "web", "to": "gateway", "label": "HTTPS", "variant": "emphasis" },
+    { "from": "gateway", "to": "mock_auth", "label": "ruta /demo", "variant": "emphasis" },
+    { "from": "mock_auth", "to": "risk_api", "label": "evaluate", "variant": "emphasis" },
+    { "from": "risk_api", "to": "model", "label": "predict", "variant": "emphasis" },
+    { "from": "mock_auth", "to": "fallback", "label": "si falla o timeout", "variant": "security", "fromSide": "bottom", "toSide": "top", "labelDy": 30 },
+    { "from": "risk_api", "to": "postgres", "label": "auditoría + feedback", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelDy": 30 },
+    { "from": "model", "to": "mlflow", "label": "pipeline + registro", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelDy": 30 },
+    { "from": "mlflow", "to": "minio", "label": "artefactos", "variant": "dashed", "fromSide": "right", "toSide": "left", "labelDy": 44 },
+    { "from": "mlflow", "to": "postgres", "label": "backend store", "variant": "dashed", "fromSide": "left", "toSide": "right", "labelDy": 64 }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Camino de la decisión", "items": ["La interfaz entra por el API Gateway", "El gateway enruta al consumidor", "El consumidor consulta al servicio de riesgo", "El servicio consulta al modelo; la decisión vuelve"] },
+    { "dot": "emerald", "title": "Datos y ciclo MLOps", "items": ["Cada decisión se persiste en PostgreSQL", "El feedback real (etiqueta) cierra el ciclo", "El pipeline registra runs en MLflow", "Los artefactos viven en MinIO (S3)"] },
+    { "dot": "amber", "title": "Degradación segura", "items": ["Si el servicio o el modelo fallan o tardan", "El fallback exige 2FA", "El login nunca se cae"] }
+  ]
+}

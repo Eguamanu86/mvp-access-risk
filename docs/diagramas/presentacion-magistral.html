@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Presentación magistral — De un modelo de IA a un sistema MLOps</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --panel-2: #172033;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --amber: #f59e0b;
+      --emerald: #34d399;
+      --red: #f87171;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: radial-gradient(1200px 700px at 20% -10%, #1b2b4b 0%, var(--bg) 55%);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    /* Barra de progreso */
+    .progress { position: fixed; top: 0; left: 0; right: 0; height: 4px; background: #0b1220; z-index: 30; }
+    .progress > span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--amber)); transition: width .25s ease; }
+
+    /* Contenedor de diapositivas */
+    .deck { position: fixed; inset: 0; }
+    .slide {
+      position: absolute; inset: 0;
+      padding: 6vh 7vw 9vh;
+      display: none;
+      flex-direction: column;
+      justify-content: safe center;
+      overflow-y: auto;
+    }
+    .slide.active { display: flex; animation: fade .28s ease; }
+    @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    .kicker {
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      font-size: clamp(.7rem, 1vw, .9rem);
+      font-weight: 700;
+      margin: 0 0 1.2rem;
+    }
+    h1 { font-size: clamp(2rem, 4.6vw, 3.6rem); line-height: 1.1; margin: 0 0 1rem; letter-spacing: -.01em; }
+    h2 { font-size: clamp(1.5rem, 3.1vw, 2.5rem); line-height: 1.15; margin: 0 0 1.4rem; }
+    .lead { font-size: clamp(1.05rem, 1.9vw, 1.5rem); color: var(--text); margin: 0 0 .6rem; max-width: 60ch; }
+    .muted { color: var(--muted); }
+    p { line-height: 1.5; }
+
+    ul.points { list-style: none; margin: 0; padding: 0; max-width: 70ch; }
+    ul.points > li {
+      position: relative;
+      padding: .55rem 0 .55rem 2rem;
+      font-size: clamp(1rem, 1.7vw, 1.35rem);
+      line-height: 1.4;
+      border-bottom: 1px solid rgba(51,65,85,.5);
+    }
+    ul.points > li:last-child { border-bottom: 0; }
+    ul.points > li::before {
+      content: "";
+      position: absolute; left: .35rem; top: 1.15rem;
+      width: .55rem; height: .55rem; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(56,189,248,.15);
+    }
+    ul.points > li strong { color: #fff; }
+
+    .quote {
+      margin: 1.6rem 0 0;
+      padding: 1rem 1.4rem;
+      border-left: 4px solid var(--accent);
+      background: rgba(56,189,248,.07);
+      font-size: clamp(1.1rem, 2vw, 1.5rem);
+      font-style: italic;
+      border-radius: 0 10px 10px 0;
+      max-width: 70ch;
+    }
+    .callout {
+      margin-top: 1.6rem;
+      padding: 1rem 1.3rem;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--amber);
+      background: var(--panel-2);
+      border-radius: 10px;
+      font-size: clamp(.95rem, 1.6vw, 1.2rem);
+      max-width: 70ch;
+    }
+
+    .flow {
+      display: flex; flex-wrap: wrap; align-items: center; gap: .5rem;
+      margin: 1.4rem 0;
+      font-family: "Cascadia Code", "Consolas", ui-monospace, monospace;
+      font-size: clamp(.85rem, 1.5vw, 1.15rem);
+    }
+    .flow .node {
+      padding: .5rem .8rem; border-radius: 8px;
+      background: var(--panel); border: 1px solid var(--border);
+      color: #fff; white-space: nowrap;
+    }
+    .flow .node.hot { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(56,189,248,.12); }
+    .flow .arrow { color: var(--accent); font-weight: 700; }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; margin-top: .6rem; }
+    .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; margin-top: .6rem; }
+    .card {
+      background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px;
+      padding: 1rem 1.2rem;
+    }
+    .card .tag { font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .card .big { font-size: clamp(1.2rem, 2.2vw, 1.8rem); font-weight: 700; margin: .3rem 0 .2rem; }
+    .card.low { border-top: 3px solid var(--emerald); }
+    .card.mid { border-top: 3px solid var(--amber); }
+    .card.high { border-top: 3px solid var(--red); }
+
+    table.data { border-collapse: collapse; width: 100%; margin-top: .6rem; font-size: clamp(.82rem, 1.4vw, 1.05rem); }
+    table.data th, table.data td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    table.data th { color: var(--accent); font-weight: 700; font-size: .85em; text-transform: uppercase; letter-spacing: .05em; }
+    table.data tr:last-child td { border-bottom: 0; }
+    .ok { color: var(--emerald); font-weight: 700; }
+    .warn { color: var(--amber); font-weight: 700; }
+
+    .result { display: flex; gap: 1.2rem; flex-wrap: wrap; margin: 1rem 0 .4rem; }
+    .result .box {
+      background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px;
+      padding: .9rem 1.2rem; min-width: 210px;
+    }
+    .result .box .k { color: var(--muted); font-size: .82rem; text-transform: uppercase; letter-spacing: .07em; }
+    .result .box .v { font-size: clamp(1.3rem, 2.4vw, 2rem); font-weight: 800; font-family: "Cascadia Code", "Consolas", monospace; }
+    .v.allow { color: var(--emerald); }
+    .v.block { color: var(--red); }
+    .v.twofa { color: var(--amber); }
+
+    .mono { font-family: "Cascadia Code", "Consolas", ui-monospace, monospace; }
+    .divider { border: 0; border-top: 1px solid var(--border); margin: 1.4rem 0; }
+
+    /* Pie de navegación */
+    .controls {
+      position: fixed; right: 18px; bottom: 14px; z-index: 30;
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(15,23,42,.85); border: 1px solid var(--border);
+      border-radius: 999px; padding: 6px 10px; backdrop-filter: blur(6px);
+    }
+    .controls button {
+      font: inherit; font-size: 1.1rem; line-height: 1; color: var(--text);
+      background: transparent; border: 0; cursor: pointer; padding: 6px 10px; border-radius: 999px;
+    }
+    .controls button:hover { background: var(--panel); color: var(--accent); }
+    .counter { color: var(--muted); font-size: .85rem; min-width: 62px; text-align: center; font-variant-numeric: tabular-nums; }
+    .hint {
+      position: fixed; left: 18px; bottom: 16px; z-index: 30;
+      color: var(--muted); font-size: .78rem; letter-spacing: .02em;
+    }
+    .brand { position: fixed; left: 18px; top: 14px; z-index: 30; color: var(--muted); font-size: .75rem; letter-spacing: .14em; text-transform: uppercase; }
+    @media (max-width: 780px) {
+      .grid2, .grid3 { grid-template-columns: 1fr; }
+      .hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress"><span id="bar"></span></div>
+  <div class="brand">MIS-312 · MLOps</div>
+
+  <main class="deck" id="deck">
+
+    <!-- 1 -->
+    <section class="slide active">
+      <p class="kicker">MIS-312 · Ingeniería de Software para Sistemas Inteligentes</p>
+      <h1>De un modelo de IA a un sistema MLOps</h1>
+      <p class="lead">El caso del <strong>Servicio Inteligente de Riesgo de Acceso</strong>.</p>
+      <div class="quote">El backend orquesta, la IA opina y el backend decide.</div>
+    </section>
+
+    <!-- 2 -->
+    <section class="slide">
+      <p class="kicker">Agenda</p>
+      <h2>Qué veremos hoy</h2>
+      <ul class="points">
+        <li>Por qué un <strong>modelo de IA no es un sistema</strong>.</li>
+        <li>Qué es <strong>MLOps</strong> y cuál es su ciclo de vida.</li>
+        <li>El caso real: <strong>arquitectura, demo y evidencia</strong>.</li>
+        <li>Las <strong>lecciones</strong> que se lleva el estudiante.</li>
+      </ul>
+    </section>
+
+    <!-- 3 -->
+    <section class="slide">
+      <p class="kicker">El problema</p>
+      <h2>La decisión de acceso es binaria</h2>
+      <ul class="points">
+        <li><strong>EP-Platform</strong> (Backend Auth Proxy) valida credenciales y emite la sesión.</li>
+        <li>La decisión de exigir 2FA es <strong>binaria y por reglas</strong>: dispositivo de confianza o no.</li>
+        <li>Un usuario legítimo que viaja o entra de madrugada paga <strong>la misma fricción</strong> que un atacante.</li>
+      </ul>
+    </section>
+
+    <!-- 4 -->
+    <section class="slide">
+      <p class="kicker">La oportunidad</p>
+      <h2>De binario a graduado</h2>
+      <div class="grid3">
+        <div class="card low"><div class="tag">Riesgo LOW</div><div class="big">Permitir</div><div class="muted">menos fricción</div></div>
+        <div class="card mid"><div class="tag">Riesgo MEDIUM</div><div class="big">Exigir 2FA</div><div class="muted">fricción proporcional</div></div>
+        <div class="card high"><div class="tag">Riesgo HIGH</div><div class="big">Bloquear</div><div class="muted">protección</div></div>
+      </div>
+      <div class="callout">Menos fricción cuando el riesgo es bajo; <strong>nunca menos seguridad</strong>.</div>
+    </section>
+
+    <!-- 5 -->
+    <section class="slide">
+      <p class="kicker">Tesis central</p>
+      <h2>Un modelo no es un sistema</h2>
+      <ul class="points">
+        <li>Un <span class="mono">model.json</span> no es un producto: es un <strong>artefacto</strong>.</li>
+        <li>El modelo no expone, ni degrada, ni audita, ni aprende por sí solo.</li>
+        <li>La inteligencia no está en el algoritmo: está en la <strong>ingeniería que lo rodea</strong>.</li>
+      </ul>
+      <div class="quote">El backend orquesta, la IA opina y el backend decide.</div>
+    </section>
+
+    <!-- 6 -->
+    <section class="slide">
+      <p class="kicker">Responsabilidades</p>
+      <h2>Cada capa tiene un rol</h2>
+      <div class="flow">
+        <span class="node">web</span><span class="arrow">→</span>
+        <span class="node">gateway</span><span class="arrow">→</span>
+        <span class="node">mock-auth<small> decide</small></span><span class="arrow">→</span>
+        <span class="node">access-risk-api<small> reglas + fallback</small></span><span class="arrow">→</span>
+        <span class="node hot">access-risk-model<small> opina</small></span>
+      </div>
+      <ul class="points">
+        <li><strong>mock-auth:</strong> orquesta el login y toma la decisión final.</li>
+        <li><strong>access-risk-api:</strong> reglas, fallback, métricas y persistencia.</li>
+        <li><strong>access-risk-model:</strong> infiere el score de riesgo. <em>Solo opina.</em></li>
+      </ul>
+    </section>
+
+    <!-- 7 -->
+    <section class="slide">
+      <p class="kicker">Concepto</p>
+      <h2>¿Qué es MLOps?</h2>
+      <ul class="points">
+        <li><strong>MLOps = ML + DevOps + datos.</strong></li>
+        <li>DevOps gobierna el ciclo del <strong>código</strong>; MLOps añade el ciclo de los <strong>datos</strong> y del <strong>modelo</strong>.</li>
+        <li>Tres activos que evolucionan a distinto ritmo: <strong>código, datos y modelo</strong>.</li>
+      </ul>
+      <div class="quote">En MLOps el modelo es un artefacto; el sistema es el producto.</div>
+    </section>
+
+    <!-- 8 -->
+    <section class="slide">
+      <p class="kicker">Ciclo de vida</p>
+      <h2>MLOps es un ciclo, no una fase</h2>
+      <div class="flow">
+        <span class="node">datos</span><span class="arrow">→</span>
+        <span class="node">entrenamiento</span><span class="arrow">→</span>
+        <span class="node">validación</span><span class="arrow">→</span>
+        <span class="node">registro</span><span class="arrow">→</span>
+        <span class="node">despliegue</span><span class="arrow">→</span>
+        <span class="node">monitoreo</span><span class="arrow">→</span>
+        <span class="node hot">feedback</span><span class="arrow">↺</span>
+      </div>
+      <div class="callout">Si el monitoreo no alimenta a los datos, el ciclo está <strong>roto</strong>: hay un modelo, pero no hay MLOps.</div>
+    </section>
+
+    <!-- 9 -->
+    <section class="slide">
+      <p class="kicker">Madurez</p>
+      <h2>Tres preguntas que la definen</h2>
+      <table class="data">
+        <thead><tr><th>Pregunta</th><th>Sin MLOps</th><th>Con MLOps</th></tr></thead>
+        <tbody>
+          <tr><td>¿Qué versión está en producción?</td><td class="muted">"la que subió Juan"</td><td>Registro versionado</td></tr>
+          <tr><td>¿El modelo sigue siendo válido?</td><td class="muted">No se sabe</td><td>Monitoreo de drift + métricas</td></tr>
+          <tr><td>¿Cómo mejora con el tiempo?</td><td class="muted">Cuando alguien se acuerda</td><td>Feedback + puerta de calidad</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 10 -->
+    <section class="slide">
+      <p class="kicker">Datos</p>
+      <h2>Los datos son ciudadanos de primera clase</h2>
+      <ul class="points">
+        <li><strong>Reproducibles:</strong> semilla fija, mismos resultados.</li>
+        <li><strong>Versionados y validados</strong> como cualquier otro artefacto.</li>
+        <li><strong>Garbage in, garbage out:</strong> ningún algoritmo salva datos malos.</li>
+      </ul>
+    </section>
+
+    <!-- 11 -->
+    <section class="slide">
+      <p class="kicker">El caso</p>
+      <h2>Arquitectura de la solución</h2>
+      <table class="data">
+        <thead><tr><th>Componente</th><th>Responsabilidad</th><th>Tecnología</th></tr></thead>
+        <tbody>
+          <tr><td>access-risk-model</td><td>Inferencia (el modelo opina)</td><td>Python / Flask</td></tr>
+          <tr><td>access-risk-api</td><td>Reglas, fallback, métricas, persistencia</td><td>Node hexagonal</td></tr>
+          <tr><td>mock-auth</td><td>Orquesta y decide</td><td>Node / Express</td></tr>
+          <tr><td>web</td><td>Interfaz de demostración</td><td>React + Vite + TS</td></tr>
+          <tr><td>Gateway</td><td>Entrada única, ruteo, rate limiting</td><td>Traefik</td></tr>
+          <tr><td>PostgreSQL · MLflow · MinIO</td><td>Auditoría, tracking y artefactos</td><td>MLOps local</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 12 -->
+    <section class="slide">
+      <p class="kicker">Resiliencia</p>
+      <h2>La IA puede fallar; el login no</h2>
+      <ul class="points">
+        <li><strong>Timeout</strong> duro de 250&nbsp;ms en cada salto.</li>
+        <li><strong>Circuit breaker:</strong> 3 fallos → abierto; 10&nbsp;s → semiabierto; si responde → cerrado.</li>
+        <li><strong>Fallback en cascada</strong> → exigir 2FA. El login nunca se cae.</li>
+      </ul>
+      <div class="callout">Degradar con gracia es <strong>diseño</strong>, no un parche.</div>
+    </section>
+
+    <!-- 13 -->
+    <section class="slide">
+      <p class="kicker">El modelo</p>
+      <h2>Simple, explicable y versionado</h2>
+      <table class="data">
+        <thead><tr><th>Señal</th><th>Peso</th><th>Lectura</th></tr></thead>
+        <tbody>
+          <tr><td>deviceUnknown</td><td>2.42</td><td>el factor de mayor riesgo</td></tr>
+          <tr><td>locationShift</td><td>1.54</td><td>cambio de ubicación</td></tr>
+          <tr><td>failedAttempts</td><td>1.25</td><td>intentos fallidos</td></tr>
+          <tr><td>velocity</td><td>1.21</td><td>desplazamiento implausible</td></tr>
+          <tr><td>unusualHour</td><td>0.90</td><td>horario inusual</td></tr>
+        </tbody>
+      </table>
+      <p class="muted" style="margin-top:1rem">Regresión logística · accuracy 0.694 · 4.000 muestras · versión 1.0.0</p>
+    </section>
+
+    <!-- 14 -->
+    <section class="slide">
+      <p class="kicker">Del score a la decisión</p>
+      <h2>El umbral es una decisión de negocio</h2>
+      <div class="grid3">
+        <div class="card low"><div class="tag">score &lt; 0.33</div><div class="big">LOW</div><div class="mono">ALLOW</div></div>
+        <div class="card mid"><div class="tag">0.33 – 0.66</div><div class="big">MEDIUM</div><div class="mono">REQUIRE_2FA</div></div>
+        <div class="card high"><div class="tag">&gt; 0.66</div><div class="big">HIGH</div><div class="mono">BLOCK</div></div>
+      </div>
+    </section>
+
+    <!-- 15 -->
+    <section class="slide">
+      <p class="kicker">Demo en vivo</p>
+      <h2>Qué vamos a ver</h2>
+      <ul class="points">
+        <li>Decisión <strong>graduada</strong> (bajo · medio · alto).</li>
+        <li><strong>Servicio caído</strong>: el login responde con fallback.</li>
+        <li><strong>Latencia alta</strong>: el timeout dispara el fallback.</li>
+        <li><strong>Recuperación</strong>: el circuit breaker cierra.</li>
+        <li><strong>Data drift</strong>: el panel alerta (PSI &gt; 0.25).</li>
+      </ul>
+    </section>
+
+    <!-- 16 -->
+    <section class="slide">
+      <p class="kicker">Demo · Escenario 1</p>
+      <h2>Decisión graduada</h2>
+      <div class="result">
+        <div class="box"><div class="k">Riesgo bajo</div><div class="v allow">ALLOW</div><div class="muted mono">score 0.1079</div></div>
+        <div class="box"><div class="k">Riesgo alto</div><div class="v block">BLOCK</div><div class="muted mono">score 0.9803</div></div>
+      </div>
+      <div class="callout">Cada decisión se persiste con un <span class="mono">decisionId</span>: es la materia prima del feedback loop.</div>
+    </section>
+
+    <!-- 17 -->
+    <section class="slide">
+      <p class="kicker">Demo · Escenario 2</p>
+      <h2>El servicio se cae… y el login no</h2>
+      <div class="result">
+        <div class="box"><div class="k">Decisión</div><div class="v twofa">REQUIRE_2FA</div></div>
+        <div class="box"><div class="k">Fallback</div><div class="v twofa">true</div></div>
+      </div>
+      <div class="callout">La respuesta segura por defecto es exigir 2FA: exactamente el comportamiento previo.</div>
+    </section>
+
+    <!-- 18 -->
+    <section class="slide">
+      <p class="kicker">Demo · Escenario 3</p>
+      <h2>La latencia también es un riesgo</h2>
+      <ul class="points">
+        <li>Un modelo que tarda <strong>800&nbsp;ms</strong> es inútil para el login.</li>
+        <li>El <strong>timeout de 250&nbsp;ms</strong> corta la espera.</li>
+        <li>Resultado: <span class="mono">fallback: true</span>.</li>
+      </ul>
+      <div class="callout">La <strong>latencia es un requisito de negocio</strong>, no un detalle técnico.</div>
+    </section>
+
+    <!-- 19 -->
+    <section class="slide">
+      <p class="kicker">Demo · Escenario 4</p>
+      <h2>Recuperación</h2>
+      <div class="result">
+        <div class="box"><div class="k">Circuito</div><div class="v allow">closed</div></div>
+        <div class="box"><div class="k">Decisión</div><div class="v allow">ALLOW</div></div>
+      </div>
+      <div class="callout">Cuando la dependencia responde, el circuit breaker vuelve a cerrar y la decisión normal regresa.</div>
+    </section>
+
+    <!-- 20 -->
+    <section class="slide">
+      <p class="kicker">Demo · Escenario 5</p>
+      <h2>Data drift</h2>
+      <ul class="points">
+        <li>No cambió el modelo. No cambió el código.</li>
+        <li><strong>Cambió el mundo:</strong> más dispositivos desconocidos y velocidades imposibles.</li>
+        <li>El panel alerta con <strong>PSI &gt; 0.25</strong>.</li>
+      </ul>
+      <div class="callout">Sin monitoreo de drift, el modelo se degrada <strong>en silencio</strong>.</div>
+    </section>
+
+    <!-- 21 -->
+    <section class="slide">
+      <p class="kicker">Evidencia</p>
+      <h2>Matriz MLOps del MVP</h2>
+      <table class="data">
+        <thead><tr><th>Capacidad</th><th>Estado</th><th>Evidencia</th></tr></thead>
+        <tbody>
+          <tr><td>Versionado de modelo</td><td class="ok">Sí</td><td>model.json + registry</td></tr>
+          <tr><td>Entrenamiento reproducible</td><td class="ok">Sí</td><td>semilla fija</td></tr>
+          <tr><td>Puerta de calidad</td><td class="ok">Sí</td><td>retrain.py</td></tr>
+          <tr><td>Registro / tracking</td><td class="ok">Sí</td><td>MLflow + MinIO</td></tr>
+          <tr><td>Monitoreo + drift</td><td class="ok">Sí</td><td>/metrics · PSI</td></tr>
+          <tr><td>Feedback loop</td><td class="ok">Sí</td><td>/feedback (fraud·legit)</td></tr>
+          <tr><td>Resiliencia / fallback</td><td class="ok">Sí</td><td>circuit breaker + 2FA</td></tr>
+          <tr><td>Rollback automatizado</td><td class="warn">Parcial</td><td>versionado, falta automatizar</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 22 -->
+    <section class="slide">
+      <p class="kicker">El puente</p>
+      <h2>El feedback loop</h2>
+      <div class="flow">
+        <span class="node">decisión</span><span class="arrow">→</span>
+        <span class="node">persistida</span><span class="arrow">→</span>
+        <span class="node">resultado real<small> fraud / legit</small></span><span class="arrow">→</span>
+        <span class="node hot">etiqueta</span><span class="arrow">→</span>
+        <span class="node">dataset de reentrenamiento</span>
+      </div>
+      <div class="callout">Sin <strong>etiquetas</strong> no hay aprendizaje. El modelo no mejora solo porque pase el tiempo.</div>
+    </section>
+
+    <!-- 23 -->
+    <section class="slide">
+      <p class="kicker">Automatización confiable</p>
+      <h2>La puerta de calidad</h2>
+      <table class="data">
+        <thead><tr><th>Escenario</th><th>Candidato</th><th>Actual</th><th>Resultado</th></tr></thead>
+        <tbody>
+          <tr><td>Sin concept drift</td><td>0.750</td><td>0.751</td><td class="warn">Rechazado</td></tr>
+          <tr><td>Con concept drift</td><td>0.783</td><td>0.724</td><td class="ok">Promovido a 1.0.1</td></tr>
+        </tbody>
+      </table>
+      <div class="callout">No se despliega lo que no mejora. Eso es lo que hace <strong>confiable</strong> la automatización.</div>
+    </section>
+
+    <!-- 24 -->
+    <section class="slide">
+      <p class="kicker">Trazabilidad</p>
+      <h2>Tracking y registro</h2>
+      <ul class="points">
+        <li><strong>MLflow:</strong> cada run registra parámetros, métricas y artefacto.</li>
+        <li><strong>MinIO:</strong> guarda el artefacto del modelo (API S3).</li>
+        <li>Responde a: <em>¿qué versión está en producción y cómo la reproduzco?</em></li>
+      </ul>
+    </section>
+
+    <!-- 25 -->
+    <section class="slide">
+      <p class="kicker">Portabilidad</p>
+      <h2>Puertos y adaptadores</h2>
+      <table class="data">
+        <thead><tr><th>Capacidad</th><th>Local</th><th>GCP</th><th>AWS</th></tr></thead>
+        <tbody>
+          <tr><td>Gateway</td><td>Traefik</td><td>API Gateway</td><td>API Gateway</td></tr>
+          <tr><td>Cómputo</td><td>Docker Compose</td><td>Cloud Run</td><td>ECS / EKS</td></tr>
+          <tr><td>SQL</td><td>PostgreSQL</td><td>Cloud SQL</td><td>RDS</td></tr>
+          <tr><td>Objetos (S3)</td><td>MinIO</td><td>Cloud Storage</td><td>S3</td></tr>
+          <tr><td>Tracking</td><td>MLflow</td><td>Vertex</td><td>SageMaker</td></tr>
+        </tbody>
+      </table>
+      <div class="callout">La lógica de negocio depende de <strong>interfaces</strong>, no del SDK de la nube.</div>
+    </section>
+
+    <!-- 26 -->
+    <section class="slide">
+      <p class="kicker">Ingeniería</p>
+      <h2>Estándar de implementación</h2>
+      <ul class="points">
+        <li>Arquitectura <strong>hexagonal</strong> (4 capas), Node 24, Express 5.</li>
+        <li>Calidad: <strong>16 + 11 + 5</strong> pruebas (modelo, unitarias, integración) + lint.</li>
+        <li>CI/CD: lint → tests → cobertura → SonarQube → despliegue.</li>
+        <li>Cloud Run, Secret Manager, contenedor no root, servicio no público.</li>
+      </ul>
+    </section>
+
+    <!-- 27 -->
+    <section class="slide">
+      <p class="kicker">Síntesis</p>
+      <h2>Cinco lecciones para llevar</h2>
+      <ul class="points">
+        <li>Un <strong>modelo no es un sistema</strong>: el valor está en orquestar y decidir.</li>
+        <li><strong>MLOps es un ciclo</strong>: si el monitoreo no vuelve a los datos, está roto.</li>
+        <li>Los <strong>datos y las etiquetas</strong> son el combustible.</li>
+        <li>La <strong>resiliencia es diseño</strong>: timeout, circuit breaker y fallback.</li>
+        <li>La <strong>puerta de calidad</strong> hace confiable la automatización.</li>
+      </ul>
+    </section>
+
+    <!-- 28 -->
+    <section class="slide">
+      <p class="kicker">Cierre</p>
+      <h1 style="font-size:clamp(1.7rem,3.6vw,2.9rem)">Lo inteligente no es el modelo:<br/>es el sistema.</h1>
+      <div class="quote">El backend orquesta, la IA opina y el backend decide.</div>
+    </section>
+
+    <!-- 29 -->
+    <section class="slide">
+      <p class="kicker">Anexo para estudiantes</p>
+      <h2>El flujo MLOps en 9 etapas</h2>
+      <table class="data">
+        <thead><tr><th>#</th><th>Etapa</th><th>Evidencia en el MVP</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Problema y decisión de negocio</td><td>Umbrales 0.33 / 0.66</td></tr>
+          <tr><td>2</td><td>Datos</td><td>4.000 muestras, semilla fija</td></tr>
+          <tr><td>3</td><td>Entrenamiento</td><td>train.py · accuracy 0.694</td></tr>
+          <tr><td>4</td><td>Versionado del modelo</td><td>model.json 1.0.0 + registry</td></tr>
+          <tr><td>5</td><td>Servicio de inferencia</td><td>access-risk-model · /predict</td></tr>
+          <tr><td>6</td><td>Integración y orquestación</td><td>mock-auth → access-risk-api</td></tr>
+          <tr><td>7</td><td>Operación y monitoreo</td><td>/metrics · drift PSI</td></tr>
+          <tr><td>8</td><td>Feedback y etiquetado</td><td>/feedback · access_risk_decisions</td></tr>
+          <tr><td>9</td><td>Reentrenamiento con puerta de calidad</td><td>retrain.py · MLflow + MinIO</td></tr>
+        </tbody>
+      </table>
+      <div class="callout">Las etapas 1–5 producen un <strong>modelo</strong>; las etapas 6–9 producen un <strong>sistema que mejora</strong>.</div>
+    </section>
+
+    <!-- 30 -->
+    <section class="slide">
+      <p class="kicker">Anexo para estudiantes</p>
+      <h2>Dos ritmos y las brechas</h2>
+      <div class="grid2">
+        <div class="card">
+          <div class="tag">Flujo online · ms</div>
+          <div class="big" style="font-size:1.2rem">Rápido y disponible</div>
+          <p class="muted">Usuario → mock-auth → access-risk-api → modelo. El login nunca se cae.</p>
+        </div>
+        <div class="card">
+          <div class="tag">Flujo offline · horas/días</div>
+          <div class="big" style="font-size:1.2rem">Reproducible y auditable</div>
+          <p class="muted">Feedback → retrain.py → puerta de calidad → nueva versión.</p>
+        </div>
+      </div>
+      <hr class="divider" />
+      <p class="lead" style="font-size:1.05rem">Pendiente para producción: drift distribuido multi-instancia, registro gestionado, disparador automático de reentrenamiento, rollback/canary y auditoría a gran escala.</p>
+      <div class="callout">Un buen sistema MLOps no es el que no tiene brechas: es el que las <strong>conoce y documenta</strong>.</div>
+    </section>
+
+  </main>
+
+  <div class="controls">
+    <button id="prev" title="Anterior (←)">‹</button>
+    <span class="counter" id="counter">1 / 30</span>
+    <button id="next" title="Siguiente (→)">›</button>
+  </div>
+  <div class="hint">← / → para navegar · Inicio / Fin · F para pantalla completa</div>
+
+  <script>
+    (function () {
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      const bar = document.getElementById('bar');
+      const counter = document.getElementById('counter');
+      let index = 0;
+
+      function render() {
+        slides.forEach((s, i) => s.classList.toggle('active', i === index));
+        bar.style.width = ((index + 1) / slides.length * 100).toFixed(2) + '%';
+        counter.textContent = (index + 1) + ' / ' + slides.length;
+        const current = slides[index];
+        if (current) current.scrollTop = 0;
+      }
+      function go(delta) {
+        index = Math.max(0, Math.min(slides.length - 1, index + delta));
+        render();
+      }
+      function next() { go(1); }
+      function prev() { go(-1); }
+      function home() { index = 0; render(); }
+      function end() { index = slides.length - 1; render(); }
+
+      document.getElementById('next').addEventListener('click', next);
+      document.getElementById('prev').addEventListener('click', prev);
+
+      document.addEventListener('keydown', (e) => {
+        switch (e.key) {
+          case 'ArrowRight': case 'PageDown': case ' ': e.preventDefault(); next(); break;
+          case 'ArrowLeft': case 'PageUp': e.preventDefault(); prev(); break;
+          case 'Home': e.preventDefault(); home(); break;
+          case 'End': e.preventDefault(); end(); break;
+          case 'f': case 'F':
+            if (document.fullscreenElement) document.exitFullscreen();
+            else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+            break;
+          default: break;
+        }
+      });
+
+      // Navegación reenviada desde el visor (index.html) u otras páginas.
+      window.addEventListener('message', (e) => {
+        const data = e.data;
+        if (!data || data.type !== 'deck') return;
+        if (data.action === 'next') next();
+        else if (data.action === 'prev') prev();
+        else if (data.action === 'home') home();
+        else if (data.action === 'end') end();
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>

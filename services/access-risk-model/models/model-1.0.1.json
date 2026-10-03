@@ -1,0 +1,41 @@
+{
+  "version": "1.0.1",
+  "features": [
+    "deviceUnknown",
+    "failedAttempts",
+    "locationShift",
+    "unusualHour",
+    "velocity"
+  ],
+  "weights": [
+    3.160623473055543,
+    1.002496006090004,
+    1.2216400772719587,
+    1.8655706096274756,
+    0.8628172649245054
+  ],
+  "bias": -2.8162736592306588,
+  "thresholds": {
+    "low": 0.33,
+    "high": 0.66
+  },
+  "reference": {
+    "locationShift": [
+      0.0,
+      0.0,
+      0.0,
+      0.09925,
+      0.098,
+      0.10625,
+      0.09425,
+      0.09725,
+      0.10425,
+      0.40075
+    ],
+    "deviceUnknownRate": 0.449
+  },
+  "metrics": {
+    "validationAccuracy": 0.783,
+    "trainedOn": 4000
+  }
+}

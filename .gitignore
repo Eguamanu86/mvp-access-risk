@@ -1,0 +1,35 @@
+# Dependencias
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Build / artefactos generados
+dist/
+build/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Cobertura
+coverage/
+*.lcov
+tests/.coverage/
+
+# Variables de entorno (secretos locales); se versionan solo los *.example
+.env
+.env.*
+!.env.example
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# SQL generado con datos
+*.dump

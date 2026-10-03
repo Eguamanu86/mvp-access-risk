@@ -1,0 +1,66 @@
+image: node:24
+
+definitions:
+  caches:
+    node-modules:
+      key:
+        files:
+          - package.json
+          - package-lock.json
+      path: node_modules/
+  steps:
+    - step: &npm
+        name: Install dependencies
+        caches:
+          - node-modules
+        script:
+          - npm install
+    - step: &linter
+        name: Code linting
+        caches:
+          - node-modules
+        script:
+          - npm run linter-test
+    - step: &tests
+        name: Run automated tests
+        caches:
+          - node-modules
+        script:
+          - npm run coverage_u
+          - npm run test_i
+        artifacts:
+          - tests/.coverage/**
+    - step: &sonarqube
+        name: SonarQube analysis & quality-gate
+        script:
+          - pipe: sonarsource/sonarqube-scan:4.0.0
+            variables:
+              SONAR_HOST_URL: ${SONAR_HOST_URL}
+              SONAR_TOKEN: ${SONAR_TOKEN}
+              SONAR_SCANNER_OPTS: "
+                -Dsonar.projectKey=${BITBUCKET_REPO_SLUG}
+                -Dsonar.projectName=${BITBUCKET_REPO_SLUG}
+                -Dsonar.projectVersion=${BITBUCKET_BUILD_NUMBER}
+                -Dsonar.links.scm=http://bitbucket.org/${BITBUCKET_REPO_FULL_NAME}
+                -Dsonar.javascript.lcov.reportPaths=tests/.coverage/lcov.info
+                "
+          - pipe: sonarsource/sonarqube-quality-gate:1.2.1
+            variables:
+              SONAR_TOKEN: ${SONAR_TOKEN}
+
+clone:
+  depth: full
+
+pipelines:
+  pull-requests:
+    "**":
+      - step: *npm
+      - step: *linter
+      - step: *tests
+      - step: *sonarqube
+  branches:
+    "{stage}":
+      - step: *npm
+      - step: *linter
+      - step: *tests
+      - step: *sonarqube
