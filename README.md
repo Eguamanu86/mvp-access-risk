@@ -228,7 +228,31 @@ Para clientes como DBeaver:
 
 ---
 
-## 8. Arranque local sin Docker
+## 8. Cómo funciona el modelo (IA)
+
+> Explicación completa: **[`docs/05-como-funciona-el-modelo.md`](docs/05-como-funciona-el-modelo.md)**.
+
+El modelo es una **regresión logística** que combina **5 señales** del intento y devuelve una **probabilidad de riesgo** (`score` 0..1). El modelo **opina**; el backend **decide**.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagramas/modelo-readme-dark.png">
+  <img alt="Del intento a la decisión: señales → features → regresión logística → sigmoide y umbrales → nivel → decisión del backend" src="docs/diagramas/modelo-readme-light.png">
+</picture>
+
+**De señal a decisión:**
+
+1. **Señales** (`deviceKnown`, `failedAttempts`, `locationShiftKm`, `hour`, `velocityKmh`) → **features** normalizadas a `0..1`.
+2. **Combinación lineal + sigmoide:** `z = bias + Σ wᵢ·xᵢ`, `score = σ(z)`.
+3. **Umbrales:** `< 0.33` → `LOW`, `0.33–0.66` → `MEDIUM`, `> 0.66` → `HIGH`.
+4. **Decisión (backend):** `LOW → ALLOW`, `MEDIUM → REQUIRE_2FA`, `HIGH → BLOCK`; si el modelo falla → *fallback* `REQUIRE_2FA`.
+
+Pesos de la versión `1.0.0`: `deviceUnknown` 2.42 · `locationShift` 1.54 · `failedAttempts` 1.25 · `velocity` 1.21 · `unusualHour` 0.90 · `bias` −2.13, guardados en `services/access-risk-model/model.json` (versionado; se reemplaza **sin recompilar** el servicio).
+
+El detalle de la fórmula, los ejemplos numéricos, el entrenamiento (`train.py`), el *data drift* (PSI) y el reentrenamiento con puerta de calidad están en **[`docs/05-como-funciona-el-modelo.md`](docs/05-como-funciona-el-modelo.md)**.
+
+---
+
+## 9. Arranque local sin Docker
 
 Solo los 4 servicios de cómputo (sin gateway, sin PostgreSQL/MinIO/MLflow). Útil para desarrollo.
 
@@ -262,7 +286,7 @@ VITE_API_URL=http://localhost:8092 npm run dev
 
 ---
 
-## 9. Pruebas
+## 10. Pruebas
 
 ```bash
 # Servicio de inferencia (Python)
@@ -274,7 +298,7 @@ cd services/access-risk-api && npm run test_u && npm run test_i && npm run linte
 
 ---
 
-## 10. Solución de problemas
+## 11. Solución de problemas
 
 | Síntoma | Causa | Solución |
 |---|---|---|
@@ -290,7 +314,7 @@ cd services/access-risk-api && npm run test_u && npm run test_i && npm run linte
 
 ---
 
-## 11. API — referencia rápida
+## 12. API — referencia rápida
 
 ### Vía gateway (`http://localhost:8210`)
 
@@ -357,7 +381,7 @@ Respuesta (contrato estándar):
 
 ---
 
-## 12. Despliegue en GCP
+## 13. Despliegue en GCP
 
 Cada servicio se despliega como imagen Docker en **Cloud Run**, con **Secret Manager**, **Cloud Build** (build + deploy) y **Bitbucket Pipelines** (lint → tests → SonarQube).
 
@@ -369,7 +393,7 @@ Cada servicio se despliega como imagen Docker en **Cloud Run**, con **Secret Man
 
 ---
 
-## 13. Estructura
+## 14. Estructura
 
 ```text
 mvp-access-risk/
@@ -384,23 +408,25 @@ mvp-access-risk/
 └── docker-compose.yaml       # stack completo (gateway + servicios + web + postgres + minio + mlflow)
 ```
 
-## 14. Documentación de fases
+## 15. Documentación de fases
 
 - `docs/00-analisis.md` — Análisis
 - `docs/HU-MVP-AR-001-servicio-inteligente-riesgo-acceso.md` — Historia de Usuario
 - `docs/01-planificacion.md` — Planificación
 - `docs/02-revision-mlops.md` — Revisión del flujo completo y matriz MLOps
 - `docs/03-analisis-emulacion-multinube.md` — Portabilidad local ↔ nube
-- `docs/diagramas/` — Diagramas de arquitectura y flujo
+- `docs/05-como-funciona-el-modelo.md` — Cómo funciona el modelo de ML (señales, fórmula, umbrales, drift, reentrenamiento)
+- `docs/diagramas/` — Diagramas de arquitectura, flujo y del modelo
 
-## 15. Ruta sugerida para estudiantes
+## 16. Ruta sugerida para estudiantes
 
 1. **Levanta el stack** (sección 1) y abre http://localhost:5173.
 2. **Entiende el flujo** con la imagen de la sección 3 y el diagrama interactivo (pestaña **Arquitectura** de la interfaz, o `docs/diagramas/`).
 3. **Juega con la demo**: escenarios de riesgo bajo/medio/alto y controles de caos —servicio caído, latencia alta, data drift— (sección 4.2).
-4. **Recorre el ciclo MLOps**: pestaña **Modelo** (reentrenar, promover, revertir) y **Dashboard** (métricas, feedback, drift).
-5. **Entiende la resiliencia**: por qué el login nunca se cae (circuit breaker + *fallback* a 2FA).
-6. **Explora el código**: `services/access-risk-api` (Node hexagonal), `services/access-risk-model` (Python) y `demo/mock-auth` (consumidor simulado).
-7. **Ejecuta las pruebas** (sección 9) y revisa la documentación de fases (sección 14).
+4. **Entiende el modelo** con la sección 8 y `docs/05-como-funciona-el-modelo.md` (qué modelo usa, cómo opina y cómo se decide).
+5. **Recorre el ciclo MLOps**: pestaña **Modelo** (reentrenar, promover, revertir) y **Dashboard** (métricas, feedback, drift).
+6. **Entiende la resiliencia**: por qué el login nunca se cae (circuit breaker + *fallback* a 2FA).
+7. **Explora el código**: `services/access-risk-api` (Node hexagonal), `services/access-risk-model` (Python) y `demo/mock-auth` (consumidor simulado).
+8. **Ejecuta las pruebas** (sección 10) y revisa la documentación de fases (sección 15).
 
 **Preguntas guía:** ¿por qué la IA no decide? · ¿qué pasa si el modelo falla? · ¿cómo se reentrena sin tocar el login? · ¿dónde queda la evidencia (auditoría)?
