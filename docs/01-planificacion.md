@@ -205,10 +205,10 @@ mvp-access-risk/
 ### 8.5. CI/CD y despliegue (referencia: `mg-cr-users-api`)
 
 - **Bitbucket Pipelines** (`bitbucket-pipelines.yml`): `image: node:24`; pasos `npm install` → `linter-test` → `coverage_u` → SonarQube *scan* + *quality gate*; se ejecuta en Pull Requests y en la rama `stage`.
-- **Cloud Build** (`cloudbuild.yaml`): build con `--cache-from`, push a **Artifact Registry** (`us-central1-docker.pkg.dev/<proyecto>/<repo>/<servicio>`), y `gcloud run deploy` con `--startup-probe=httpGet.path=/ready` y `--env-vars-file=env.<ambiente>.yaml`.
-- **Ambientes:** `env.test.yaml`, `env.stage.yaml`, `env.prod.yaml` con `APP_ENV`, `PROJECT_ID`, `LOG_LEVEL`, `SECRET_MAPPINGS` y configuración de servicios.
-- **Secretos:** `SECRET_MAPPINGS` apunta a Secret Manager; las credenciales usan `SET_VIA_SECRET_MANAGER`.
-- **Región y registro:** `us-central1`; Artifact Registry por ecosistema (`madagascar-artifacts`).
+- **Cloud Build** (`cloudbuild.yaml`): build con `--cache-from`, push a **Artifact Registry** (`<region>-docker.pkg.dev/<proyecto>/<repo>/<servicio>`), y `gcloud run deploy` con `--startup-probe=httpGet.path=/ready` y `--env-vars-file=env.<ambiente>.yaml`.
+- **Ambientes:** plantilla `env.example.yaml` (por servicio) con `APP_ENV`, `LOG_LEVEL` y la configuración de servicios; **sin** identificadores de proyecto ni secretos.
+- **Secretos:** se inyectan en el despliegue (Secret Manager); las credenciales no viven en el repositorio.
+- **Región y registro:** Artifact Registry; los valores concretos (proyecto, región, repositorio) se definen fuera del repositorio.
 
 ## 9. Diseño de UX/usabilidad de la interfaz
 

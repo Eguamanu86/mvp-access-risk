@@ -363,7 +363,7 @@ Cada servicio se despliega como imagen Docker en **Cloud Run**, con **Secret Man
 
 - `services/access-risk-api/cloudbuild.yaml` y `bitbucket-pipelines.yml`
 - `services/access-risk-model/cloudbuild.yaml`
-- Variables por ambiente: `env.test.yaml`, `env.stage.yaml`, `env.prod.yaml`
+- Variables por ambiente: plantilla `env.example.yaml` por servicio (sin identificadores de proyecto ni secretos; se copia a `env.<ambiente>.yaml` en el despliegue)
 - El servicio de riesgo **no es público** (`--no-allow-unauthenticated`): se autentica servicio a servicio.
 - El contrato del gateway está en `gateway/openapi.yaml` (Traefik en local / GCP API Gateway en la nube). Ver `gateway/README.md`.
 

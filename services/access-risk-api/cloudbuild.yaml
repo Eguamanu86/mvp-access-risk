@@ -41,7 +41,7 @@ steps:
 
 substitutions:
   _REPOSITORY_PROJECT: $PROJECT_ID
-  _REPOSITORY_NAME: madagascar-artifacts
+  _REPOSITORY_NAME: YOUR_ARTIFACT_REGISTRY
   _SERVICE_NAME: $REPO_NAME
 
 options:
